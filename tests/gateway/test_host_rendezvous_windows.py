@@ -3,7 +3,7 @@
 ``os.open(..., 0o600)`` sets NO ACLs on Windows, so the host token — which holds the backend's
 LIVE session token — would inherit whatever the parent directory grants. The SSH runtime's
 protected owner+SYSTEM DACL writer is the repo's primitive for this credential class
-(``tests/hermes_cli/test_ssh_session_token_parser.py`` documents why); this proves the host
+(``tests/shellgpt_cli/test_ssh_session_token_parser.py`` documents why); this proves the host
 rendezvous actually uses it, and that the host lock still works on that path.
 """
 
@@ -16,13 +16,13 @@ pytestmark = pytest.mark.windows_only
 
 @pytest.fixture
 def host_dir(tmp_path, monkeypatch):
-    monkeypatch.setenv("HERMES_GATEWAY_LOCK_DIR", str(tmp_path / "locks"))
+    monkeypatch.setenv("SHELLGPT_GATEWAY_LOCK_DIR", str(tmp_path / "locks"))
     yield tmp_path
     hr.release_host_lock(hr.ROLE_SERVE)
 
 
 def _allowed_sids():
-    from hermes_cli import windows_ssh_runtime as wsr
+    from shellgpt_cli import windows_ssh_runtime as wsr
 
     return wsr._allowed_sids()
 
@@ -31,7 +31,7 @@ def test_host_token_is_written_with_a_protected_owner_only_dacl(host_dir):
     """Owner+SYSTEM only, and the DACL is protected so inheritable parent grants are not merged."""
     import win32security
 
-    from hermes_cli import windows_ssh_runtime as wsr
+    from shellgpt_cli import windows_ssh_runtime as wsr
 
     assert hr.claim_host_lock(hr.ROLE_SERVE)[0] is hr.HostLockOutcome.ACQUIRED
     hr.publish_record(hr.ROLE_SERVE, host="127.0.0.1", port=9119, token="live-session-token")

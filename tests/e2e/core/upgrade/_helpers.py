@@ -1,14 +1,14 @@
 """Lane-private helpers for the upgrade / install-integrity and config round-trip suites.
 
-Every Hermes process these suites spawn runs:
+Every ShellGPT process these suites spawn runs:
 
-* with a HOME/HERMES_HOME under the test's tmp dir and an environment built from an
-  allowlist (no inherited ``*_API_KEY`` / ``HERMES_*``), so only the fake provider is
+* with a HOME/SHELLGPT_HOME under the test's tmp dir and an environment built from an
+  allowlist (no inherited ``*_API_KEY`` / ``SHELLGPT_*``), so only the fake provider is
   configured;
 * inside a ``bwrap`` sandbox when bubblewrap is usable: its own PID namespace (the
   updater's process-table scans cannot see, let alone signal, any real gateway on the
   host), a tmpfs over ``/run/user/<uid>`` (no user systemd bus), the real
-  ``~/.hermes`` bind-mounted read-only, and ``--die-with-parent`` so killing the
+  ``~/.shellgpt`` bind-mounted read-only, and ``--die-with-parent`` so killing the
   sandbox kills every descendant (no orphans);
 * with ``systemctl``/``launchctl``/``sudo``/``loginctl`` shims first on PATH that log
   their argv and fail, so a service-restart attempt is observable and never reaches a
@@ -90,27 +90,27 @@ def isolated_env(
     pythonpath: Path | None = None,
     extra: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    """Allowlisted environment with HOME/HERMES_HOME under ``root``."""
+    """Allowlisted environment with HOME/SHELLGPT_HOME under ``root``."""
     home = root / "home"
-    hermes_home = home / ".hermes"
-    hermes_home.mkdir(parents=True, exist_ok=True)
+    shellgpt_home = home / ".shellgpt"
+    shellgpt_home.mkdir(parents=True, exist_ok=True)
     shim_dir = root / "shims"
     write_shims(shim_dir)
     env = {k: os.environ[k] for k in _ENV_ALLOW if k in os.environ}
     env.setdefault("LANG", "C.UTF-8")
     env.update(
         HOME=str(home),
-        HERMES_HOME=str(hermes_home),
+        SHELLGPT_HOME=str(shellgpt_home),
         XDG_RUNTIME_DIR=str(root / "run"),
         XDG_CONFIG_HOME=str(home / ".config"),
         XDG_DATA_HOME=str(home / ".local" / "share"),
         XDG_CACHE_HOME=str(home / ".cache"),
-        DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent/hermes-test-bus",
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent/shellgpt-test-bus",
         NO_COLOR="1",
         TERM="dumb",
         PYTHONUNBUFFERED="1",
         PYTHONHASHSEED="0",
-        HERMES_DISABLE_LAZY_INSTALLS="1",
+        SHELLGPT_DISABLE_LAZY_INSTALLS="1",
         TIRITH_ENABLED="false",
         GIT_TERMINAL_PROMPT="0",
         GIT_CONFIG_NOSYSTEM="1",
@@ -120,12 +120,12 @@ def isolated_env(
     )
     (root / "run").mkdir(parents=True, exist_ok=True)
     # Reuse the host uv cache (read/write, uv is concurrency-safe) so dependency syncs are
-    # warm; never the real ~/.hermes.
+    # warm; never the real ~/.shellgpt.
     real_uv_cache = Path(os.environ.get("UV_CACHE_DIR") or REAL_HOME / ".cache" / "uv")
     if real_uv_cache.is_dir():
         env["UV_CACHE_DIR"] = str(real_uv_cache)
     base_path = os.environ.get("PATH", "/usr/bin:/bin")
-    uv = shutil.which("uv") or (str(REAL_HOME / ".hermes" / "bin" / "uv") if (REAL_HOME / ".hermes" / "bin" / "uv").exists() else None)
+    uv = shutil.which("uv") or (str(REAL_HOME / ".shellgpt" / "bin" / "uv") if (REAL_HOME / ".shellgpt" / "bin" / "uv").exists() else None)
     path_parts = [str(shim_dir), *[str(p) for p in extra_path]]
     if uv:
         path_parts.append(str(Path(uv).parent))
@@ -142,9 +142,9 @@ def sandbox_argv(argv: Sequence[str], *, writable: Iterable[Path]) -> list[str]:
     if not BWRAP_OK:
         return list(argv)
     cmd = ["bwrap", "--dev-bind", "/", "/"]
-    real_hermes = REAL_HOME / ".hermes"
-    if real_hermes.is_dir():
-        cmd += ["--ro-bind", str(real_hermes), str(real_hermes)]
+    real_shellgpt = REAL_HOME / ".shellgpt"
+    if real_shellgpt.is_dir():
+        cmd += ["--ro-bind", str(real_shellgpt), str(real_shellgpt)]
     for w in writable:
         w = Path(w)
         w.mkdir(parents=True, exist_ok=True)

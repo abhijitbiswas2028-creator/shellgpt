@@ -1,16 +1,16 @@
 ---
 sidebar_position: 3
 title: "Android / Termux"
-description: "Run Hermes Agent directly on an Android phone with Termux"
+description: "Run ShellGPT Agent directly on an Android phone with Termux"
 ---
 
-# Hermes on Android with Termux
+# ShellGPT on Android with Termux
 
 :::warning Tier 2 platform
 Termux (Android) is a [Tier 2 platform](./platform-support.md#tier-2). The installer script and documentation here are maintained on a best-effort basis only. Commits to `main` may break these packages at any point in time.
 :::
 
-Hermes Agent can run directly on an Android phone through [Termux](https://termux.dev/).
+ShellGPT Agent can run directly on an Android phone through [Termux](https://termux.dev/).
 
 It gives you a working local CLI on the phone, plus the core extras that are currently known to install cleanly on Android.
 
@@ -18,7 +18,7 @@ It gives you a working local CLI on the phone, plus the core extras that are cur
 
 The tested Termux bundle installs:
 
-- the Hermes CLI
+- the ShellGPT CLI
 - cron support
 - PTY/background terminal support
 - Telegram gateway support (manual / best-effort background runs)
@@ -42,7 +42,7 @@ A few features still need desktop/server-style dependencies that are not publish
 - Docker-based terminal isolation is not available inside Termux
 - Android may still suspend Termux background jobs, so gateway persistence is best-effort rather than a normal managed service
 
-That does not stop Hermes from working well as a phone-native CLI agent — it just means the recommended mobile install is intentionally narrower than the desktop/server install.
+That does not stop ShellGPT from working well as a phone-native CLI agent — it just means the recommended mobile install is intentionally narrower than the desktop/server install.
 
 ---
 
@@ -52,13 +52,13 @@ That does not stop Hermes from working well as a phone-native CLI agent — it j
 This APT repository is **community-maintained by `@adybag14-cyber` and is not an official NousResearch distribution**. NousResearch does not build, sign, host, or audit these packages. Enabling the repository means trusting the contributor-operated repository and its signing key. Termux itself remains a Tier 2 / best-effort platform.
 :::
 
-For users who prefer a native package-manager install rather than building Python/Rust dependencies on the phone, a community-maintained APT repository is available. The repository bootstrap and packaging sources are published in [`adybag14-cyber/termux-python`](https://github.com/adybag14-cyber/termux-python), with the Hermes package build in [`adybag14-cyber/termux-hermes`](https://github.com/adybag14-cyber/termux-hermes).
+For users who prefer a native package-manager install rather than building Python/Rust dependencies on the phone, a community-maintained APT repository is available. The repository bootstrap and packaging sources are published in [`adybag14-cyber/termux-python`](https://github.com/adybag14-cyber/termux-python), with the ShellGPT package build in [`adybag14-cyber/termux-shellgpt`](https://github.com/adybag14-cyber/termux-shellgpt).
 
-Install the repository key/source and Hermes with:
+Install the repository key/source and ShellGPT with:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/adybag14-cyber/termux-python/main/scripts/setup_apt_repo.sh | bash
-pkg install hermes-agent
+pkg install shellgpt-agent
 ```
 
 The repository signing-key fingerprint currently documented by the community distribution is:
@@ -67,23 +67,23 @@ The repository signing-key fingerprint currently documented by the community dis
 EAD24A2124EFA7393A78B7B14699F966313F7A6B
 ```
 
-APT-managed Hermes installs are marked with install method `apt`. Hermes therefore does not run its Git self-updater against package-owned files; use the package manager instead:
+APT-managed ShellGPT installs are marked with install method `apt`. ShellGPT therefore does not run its Git self-updater against package-owned files; use the package manager instead:
 
 ```bash
 pkg update
-pkg upgrade hermes-agent
+pkg upgrade shellgpt-agent
 ```
 
-Packaging/repository/signing problems for this option should be reported to the community packaging repositories above. Hermes runtime bugs can still be reported here, keeping in mind that Android/Termux support is best-effort.
+Packaging/repository/signing problems for this option should be reported to the community packaging repositories above. ShellGPT runtime bugs can still be reported here, keeping in mind that Android/Termux support is best-effort.
 
 ---
 
 ## Option 1: One-line installer
 
-Hermes now ships a Termux-aware installer path:
+ShellGPT now ships a Termux-aware installer path:
 
 ```bash
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://shellgpt-agent.nousresearch.com/install.sh | bash
 ```
 
 On Termux, the installer automatically:
@@ -91,7 +91,7 @@ On Termux, the installer automatically:
 - uses `pkg` for system packages
 - creates the venv with `python -m venv`
 - attempts the broad `.[termux-all]` extra first and falls back to the smaller `.[termux]` extra (then a base install) — the curl installer matches this order automatically
-- links `hermes` into `$PREFIX/bin` so it stays on your Termux PATH
+- links `shellgpt` into `$PREFIX/bin` so it stays on your Termux PATH
 - skips the untested browser / WhatsApp bootstrap
 
 If you want the explicit commands or need to debug a failed install, use the manual path below.
@@ -112,7 +112,7 @@ Why these packages?
 - `python` — runtime + venv support
 
 :::warning Supported Python range
-Hermes requires **Python >=3.11,&lt;3.14**. Current Termux ships `python`
+ShellGPT requires **Python >=3.11,&lt;3.14**. Current Termux ships `python`
 3.14.x, which is outside that range — the installer detects this, and will
 automatically try the [Termux User Repository (TUR)](https://github.com/termux-user-repository/tur)
 for a supported interpreter. For a manual install, get one yourself:
@@ -132,11 +132,11 @@ Then use `python3.13` in place of `python` in the commands below
 - `ripgrep` — fast file search
 - `ffmpeg` — media / TTS conversions
 
-### 2. Clone Hermes
+### 2. Clone ShellGPT
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
-cd hermes-agent
+git clone https://github.com/NousResearch/shellgpt-agent.git
+cd shellgpt-agent
 ```
 
 ### 3. Create a virtual environment
@@ -162,25 +162,25 @@ If you only want the minimal core agent, this also works:
 python -m pip install -e '.' -c constraints-termux.txt
 ```
 
-### 5. Put `hermes` on your Termux PATH
+### 5. Put `shellgpt` on your Termux PATH
 
 ```bash
-ln -sf "$PWD/venv/bin/hermes" "$PREFIX/bin/hermes"
+ln -sf "$PWD/venv/bin/shellgpt" "$PREFIX/bin/shellgpt"
 ```
 
-`$PREFIX/bin` is already on PATH in Termux, so this makes the `hermes` command persist across new shells without re-activating the venv every time.
+`$PREFIX/bin` is already on PATH in Termux, so this makes the `shellgpt` command persist across new shells without re-activating the venv every time.
 
 ### 6. Verify the install
 
 ```bash
-hermes --version
-hermes doctor
+shellgpt --version
+shellgpt doctor
 ```
 
-### 7. Start Hermes
+### 7. Start ShellGPT
 
 ```bash
-hermes
+shellgpt
 ```
 
 ---
@@ -190,15 +190,15 @@ hermes
 ### Configure a model
 
 ```bash
-hermes model
+shellgpt model
 ```
 
-Or set keys directly in `~/.hermes/.env`.
+Or set keys directly in `~/.shellgpt/.env`.
 
 ### Re-run the full interactive setup wizard later
 
 ```bash
-hermes setup
+shellgpt setup
 ```
 
 ### Install optional Node dependencies manually
@@ -263,9 +263,9 @@ python -m pip install -e '.[termux]' -c constraints-termux.txt
 
 ### `Failed building wheel for uvloop`
 
-`uvloop` bundles libuv, whose `./configure` does not run on Android. Hermes keeps it out of the core install and of the `termux` / `termux-all` extras — `uvicorn` falls back to the stdlib asyncio loop, which the dashboard and gateway run fine on. If you see this error, you are installing an extra that includes `uvloop` (for example `[all]`): install `.[termux]` or `.[termux-all]` instead.
+`uvloop` bundles libuv, whose `./configure` does not run on Android. ShellGPT keeps it out of the core install and of the `termux` / `termux-all` extras — `uvicorn` falls back to the stdlib asyncio loop, which the dashboard and gateway run fine on. If you see this error, you are installing an extra that includes `uvloop` (for example `[all]`): install `.[termux]` or `.[termux-all]` instead.
 
-### `hermes doctor` says ripgrep or Node is missing
+### `shellgpt doctor` says ripgrep or Node is missing
 
 Install them with Termux packages:
 
@@ -301,5 +301,5 @@ If you hit a new Android-specific issue, please open a GitHub issue with:
 - your Android version
 - `termux-info`
 - `python --version`
-- `hermes doctor`
+- `shellgpt doctor`
 - the exact install command and full error output

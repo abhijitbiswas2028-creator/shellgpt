@@ -1,8 +1,8 @@
-import { skillInvocationText } from '@hermes/shared'
+import { skillInvocationText } from '@shellgpt/shared'
 
 import { extractImageRefs } from '@/lib/embedded-images'
 import { dedupeGeneratedImageEchoesInParts } from '@/lib/generated-images'
-import type { MessageReaction, SessionMessage } from '@/types/hermes'
+import type { MessageReaction, SessionMessage } from '@/types/shellgpt'
 
 import {
   assistantTextPart,
@@ -354,7 +354,7 @@ export function toChatMessages(messages: SessionMessage[]): ChatMessage[] {
       message.display_kind === 'process_complete' ||
       message.display_kind === 'auto_continue' ||
       message.display_kind === 'personality_switch' ||
-      // Hermes closing a failed turn, not the model speaking.
+      // ShellGPT closing a failed turn, not the model speaking.
       message.display_kind === 'failed_turn'
         ? 'system'
         : message.role

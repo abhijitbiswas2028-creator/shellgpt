@@ -1,5 +1,5 @@
-import type { MouseTrackingMode, ScrollBoxHandle } from '@hermes/ink'
-import type { Usage } from '@hermes/shared/gateway-events'
+import type { MouseTrackingMode, ScrollBoxHandle } from '@shellgpt/ink'
+import type { Usage } from '@shellgpt/shared/gateway-events'
 import type { MutableRefObject, ReactNode, RefObject, SetStateAction } from 'react'
 
 import type { PasteEvent } from '../components/textInput.js'

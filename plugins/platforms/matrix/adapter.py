@@ -137,7 +137,7 @@ def _resolve_matrix_bang_command(name: str) -> str | None:
         return None
     candidates = list(dict.fromkeys((name.lower(), name.lower().replace("_", "-"))))
     try:
-        from hermes_cli.commands import is_gateway_known_command
+        from shellgpt_cli.commands import is_gateway_known_command
         for candidate in candidates:
             if is_gateway_known_command(candidate):
                 return candidate
@@ -155,7 +155,7 @@ def _resolve_matrix_bang_command(name: str) -> str | None:
 
 
 def _normalize_matrix_bang_command(text: str) -> str:
-    """Convert Matrix ``!command`` aliases to normal Hermes ``/command`` text."""
+    """Convert Matrix ``!command`` aliases to normal ShellGPT ``/command`` text."""
     if not text or not text.startswith("!"):
         return text
     match = _MATRIX_BANG_COMMAND_RE.match(text)
@@ -397,7 +397,7 @@ def _resolve_max_message_length(config) -> int:
 # the multiplex gateway imports this once and a module constant would collide every profile's Olm
 # identity in one crypto.db.
 # Store directory for E2EE keys and sync state. Mirrors the pairing-store fix (a6397c379). See #89168.
-from hermes_constants import get_hermes_dir as _get_hermes_dir
+from shellgpt_constants import get_shellgpt_dir as _get_shellgpt_dir
 
 _STARTUP_GRACE_SECONDS = 5  # ignore messages older than this many seconds before startup
 
@@ -621,9 +621,9 @@ def _scoped_recovery_key() -> str:
 # markup after sanitization. Tokens are plain printable text with no special
 # HTML/Markdown meaning, so both the Markdown converter and the sanitizer
 # pass them through verbatim.
-_TEX_TOKEN_RE = re.compile(r"HERMESTEX(?:DISPLAY|INLINE)(\d+)HERMESTEXEND")
-_TEX_DISPLAY_TOKEN = "HERMESTEXDISPLAY%dHERMESTEXEND"
-_TEX_INLINE_TOKEN = "HERMESTEXINLINE%dHERMESTEXEND"
+_TEX_TOKEN_RE = re.compile(r"SHELLGPTTEX(?:DISPLAY|INLINE)(\d+)SHELLGPTTEXEND")
+_TEX_DISPLAY_TOKEN = "SHELLGPTTEXDISPLAY%dSHELLGPTTEXEND"
+_TEX_INLINE_TOKEN = "SHELLGPTTEXINLINE%dSHELLGPTTEXEND"
 
 
 def _latex_to_tokens(text: str) -> tuple[str, list[tuple[str, str]]]:
@@ -814,7 +814,7 @@ class MatrixAdapter(BasePlatformAdapter):
 
     supports_code_blocks = True  # Matrix renders fenced code blocks (HTML/markdown)
     splits_long_messages = True  # send() chunks via truncate_message(max_message_length)
-    typed_command_prefix = "!"  # clients reserve typed "/" for local commands; "!command" always reaches Hermes
+    typed_command_prefix = "!"  # clients reserve typed "/" for local commands; "!command" always reaches ShellGPT
     # Class-level defaults keep object.__new__-built test instances working.
     max_message_length = DEFAULT_MAX_MESSAGE_LENGTH
     _SPLIT_THRESHOLD = DEFAULT_MAX_MESSAGE_LENGTH - 100
@@ -822,12 +822,12 @@ class MatrixAdapter(BasePlatformAdapter):
     def _resolve_store_dir(self) -> Path:
         """Pin the crypto-store dir to the active profile (connect() runs inside the profile
         scope); cached so later out-of-scope reads report the store actually in use."""
-        self._store_dir = _get_hermes_dir("platforms/matrix/store", "matrix/store")
+        self._store_dir = _get_shellgpt_dir("platforms/matrix/store", "matrix/store")
         return self._store_dir
 
     @property
     def _crypto_db_path(self) -> Path:
-        return (self._store_dir or _get_hermes_dir("platforms/matrix/store", "matrix/store")) / "crypto.db"
+        return (self._store_dir or _get_shellgpt_dir("platforms/matrix/store", "matrix/store")) / "crypto.db"
 
     def __init__(self, config: PlatformConfig):
         super().__init__(config, Platform.MATRIX)
@@ -891,8 +891,8 @@ class MatrixAdapter(BasePlatformAdapter):
             logger.info("Matrix: proxy configured — %s", self._proxy_url)
         self._max_media_bytes = _env_number("MATRIX_MAX_MEDIA_BYTES", 100 * 1024 * 1024, int)
         # Text batching merges client-side splits (~4000 chars) of one long message.
-        self._text_batch_delay_seconds = float(os.getenv("HERMES_MATRIX_TEXT_BATCH_DELAY_SECONDS", "0.6"))
-        self._text_batch_split_delay_seconds = float(os.getenv("HERMES_MATRIX_TEXT_BATCH_SPLIT_DELAY_SECONDS", "2.0"))
+        self._text_batch_delay_seconds = float(os.getenv("SHELLGPT_MATRIX_TEXT_BATCH_DELAY_SECONDS", "0.6"))
+        self._text_batch_split_delay_seconds = float(os.getenv("SHELLGPT_MATRIX_TEXT_BATCH_SPLIT_DELAY_SECONDS", "2.0"))
         self._approval_reaction_map = {
             "✅": "once", "🌀": "session", "♾️": "always", "♾": "always", "\u267e\ufe0f": "always",
             "\u267e": "always", "❌": "deny", "❎": "deny"}
@@ -1170,7 +1170,7 @@ class MatrixAdapter(BasePlatformAdapter):
         elif self._password and self._user_id:
             try:
                 resp = await client.login(
-                    identifier=self._user_id, password=self._password, device_name="Hermes Agent",
+                    identifier=self._user_id, password=self._password, device_name="ShellGPT Agent",
                     device_id=self._device_id or None)
                 if resp and hasattr(resp, "device_id"):
                     client.device_id = resp.device_id
@@ -1212,7 +1212,7 @@ class MatrixAdapter(BasePlatformAdapter):
                 f"sqlite:///{self._crypto_db_path}", upgrade_table=PgCryptoStore.upgrade_table)
             await crypto_db.start()
             self._crypto_db = crypto_db
-            _acct_id = self._user_id or "hermes"
+            _acct_id = self._user_id or "shellgpt"
             # Key on the RESOLVED client.device_id (token's real device), not the configured
             # one, or the Olm account is stored under a key that can never be looked up.
             _pickle_key = f"{_acct_id}:{client.device_id or self._device_id or 'default'}"
@@ -1431,7 +1431,7 @@ class MatrixAdapter(BasePlatformAdapter):
         handoff watcher and the cron seeder mirror that shape rather than the shared ``thread`` slot."""
         if self._client is None:
             return None
-        result = await self.send(parent_chat_id, (name or "").strip() or "Hermes session")
+        result = await self.send(parent_chat_id, (name or "").strip() or "ShellGPT session")
         root = result.message_id if result.success else None
         if not root:
             return None
@@ -1701,7 +1701,7 @@ class MatrixAdapter(BasePlatformAdapter):
             return await self.send(
                 chat_id, "No authenticated models are available for this session.", metadata=metadata)
         try:
-            from hermes_cli.providers import get_label
+            from shellgpt_cli.providers import get_label
             provider_label = get_label(current_provider)
         except Exception:
             provider_label = current_provider
@@ -2882,7 +2882,7 @@ class MatrixAdapter(BasePlatformAdapter):
 
     def _strip_mention(self, body: str) -> str:
         """Strip explicit ``@user:server`` / ``@localpart`` tokens only — never bare localpart
-        words, or "Hermes Agent" would become "Agent"."""
+        words, or "ShellGPT Agent" would become "Agent"."""
         if not body:
             return ""
         if self._user_id:
@@ -3026,7 +3026,7 @@ async def _standalone_send(pconfig, chat_id, message, *, thread_id=None, media_f
         token = getattr(pconfig, "token", None) or get_secret("MATRIX_ACCESS_TOKEN", "") or ""
         if not homeserver or not token:
             return send_error("Matrix not configured (MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN required)")
-        txn_id = f"hermes_{int(time.time() * 1000)}_{os.urandom(4).hex()}"
+        txn_id = f"shellgpt_{int(time.time() * 1000)}_{os.urandom(4).hex()}"
         from urllib.parse import quote
         url = f"{homeserver}/_matrix/client/v3/rooms/{quote(chat_id, safe='')}/send/m.room.message/{txn_id}"
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
@@ -3058,9 +3058,9 @@ async def _standalone_send(pconfig, chat_id, message, *, thread_id=None, media_f
 
 def interactive_setup() -> None:
     """Interactive credential setup (setup_fn); CLI helpers are lazy-imported."""
-    from hermes_cli.config import get_env_value, remove_env_value, save_env_value
-    from hermes_cli.cli_output import prompt, prompt_yes_no, print_header, print_info, print_success, print_warning
-    from hermes_cli.setup_platforms import declines_reconfigure
+    from shellgpt_cli.config import get_env_value, remove_env_value, save_env_value
+    from shellgpt_cli.cli_output import prompt, prompt_yes_no, print_header, print_info, print_success, print_warning
+    from shellgpt_cli.setup_platforms import declines_reconfigure
     print_header("Matrix")
     if declines_reconfigure("Matrix", "Reconfigure Matrix?", "MATRIX_ACCESS_TOKEN", "MATRIX_PASSWORD"):
         return
@@ -3109,7 +3109,7 @@ def interactive_setup() -> None:
             print_success("Matrix allowlist configured")
         else:
             print_info("⚠️  No allowlist set - anyone who can message the bot can use it!")
-        for line in ("📬 Home Room: where Hermes delivers cron job results and notifications.",
+        for line in ("📬 Home Room: where ShellGPT delivers cron job results and notifications.",
                      "   Room IDs look like !abc123:server (shown in Element room settings)",
                      "   You can also set this later by typing /set-home in a Matrix room.",
                      "Leave blank to clear a previously saved home room (cron / notifications)."):
@@ -3139,10 +3139,10 @@ def _apply_yaml_config(yaml_cfg: dict, matrix_cfg: dict) -> dict | None:
 
 
 def _is_connected(config) -> bool:
-    """Connected = homeserver + token (or password). Reads via hermes_cli.gateway.get_env_value so
+    """Connected = homeserver + token (or password). Reads via shellgpt_cli.gateway.get_env_value so
     setup-status callers that patch it see the same value; PlatformConfig extras are honored."""
     extra = getattr(config, "extra", {}) or {}
-    import hermes_cli.gateway as gateway_mod
+    import shellgpt_cli.gateway as gateway_mod
     homeserver = extra.get("homeserver") or gateway_mod.get_env_value("MATRIX_HOMESERVER") or ""
     token = (getattr(config, "token", None) or gateway_mod.get_env_value("MATRIX_ACCESS_TOKEN")
              or gateway_mod.get_env_value("MATRIX_PASSWORD") or "")

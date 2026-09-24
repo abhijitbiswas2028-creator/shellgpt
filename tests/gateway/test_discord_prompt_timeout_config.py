@@ -56,9 +56,9 @@ from plugins.platforms.discord.adapter import (  # noqa: E402
 
 
 def _patch_config(monkeypatch, cfg):
-    """Stub ``hermes_cli.config.read_raw_config`` to return ``cfg``."""
-    import hermes_cli.config
-    monkeypatch.setattr(hermes_cli.config, "read_raw_config", lambda: cfg)
+    """Stub ``shellgpt_cli.config.read_raw_config`` to return ``cfg``."""
+    import shellgpt_cli.config
+    monkeypatch.setattr(shellgpt_cli.config, "read_raw_config", lambda: cfg)
 
 
 def test_explicit_int_value(monkeypatch):

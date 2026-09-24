@@ -7,13 +7,13 @@ import subprocess
 
 import pytest
 
-import hermes_constants
-from hermes_cli import main_tui_launch
+import shellgpt_constants
+from shellgpt_cli import main_tui_launch
 from tools.environments import local
 
 
 def _drive_node_bootstrap():
-    return hermes_constants._run_node_bootstrap("ensure_node", timeout=5)
+    return shellgpt_constants._run_node_bootstrap("ensure_node", timeout=5)
 
 
 def _drive_tui_node():
@@ -25,8 +25,8 @@ def test_node_bootstrap_spawns_resolved_bash(monkeypatch, tmp_path, drive):
     fixture_bash = str(tmp_path / "git" / "bin" / "bash.exe")
     monkeypatch.setattr(local, "_find_bash", lambda: fixture_bash)
     monkeypatch.setattr(main_tui_launch.shutil, "which", lambda name: None)  # force the bootstrap path
-    monkeypatch.delenv("HERMES_SKIP_NODE_BOOTSTRAP", raising=False)
-    monkeypatch.setattr(hermes_constants, "_NODE_BOOTSTRAP_SCRIPT", tmp_path / "node-bootstrap.sh")
+    monkeypatch.delenv("SHELLGPT_SKIP_NODE_BOOTSTRAP", raising=False)
+    monkeypatch.setattr(shellgpt_constants, "_NODE_BOOTSTRAP_SCRIPT", tmp_path / "node-bootstrap.sh")
     (tmp_path / "node-bootstrap.sh").write_text("", encoding="utf-8")
     argvs = []
 

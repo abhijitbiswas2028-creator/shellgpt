@@ -133,7 +133,7 @@ class TestScopedAwsSessionKwargs:
         Control: a standalone run keeps the ambient chain (``{}`` + process-env bearer)."""
         from agent import bedrock_adapter, secret_scope
         from agent.bedrock_adapter import _cached_client, resolve_bedrock_bearer_token, scoped_aws_session_kwargs
-        from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+        from shellgpt_constants import reset_shellgpt_home_override, set_shellgpt_home_override
 
         home_a, home_b = tmp_path / "home-A", tmp_path / "home-B"
         for home in (home_a, home_b):
@@ -151,13 +151,13 @@ class TestScopedAwsSessionKwargs:
         monkeypatch.setattr(bedrock_adapter, "_require_boto3", boom)
 
         def in_scope(home, fn):
-            h_tok = set_hermes_home_override(str(home))
+            h_tok = set_shellgpt_home_override(str(home))
             s_tok = secret_scope.set_secret_scope(secret_scope.build_profile_secret_scope(home))
             try:
                 return fn()
             finally:
                 secret_scope.reset_secret_scope(s_tok)
-                reset_hermes_home_override(h_tok)
+                reset_shellgpt_home_override(h_tok)
 
         # Control: standalone keeps the ambient chain.
         assert scoped_aws_session_kwargs() == {}
@@ -1489,7 +1489,7 @@ class TestBearerTokenRoutesToConverse:
     def _resolve(self, monkeypatch, *, bearer: bool):
         import os
 
-        from hermes_cli import runtime_provider as rp
+        from shellgpt_cli import runtime_provider as rp
 
         if bearer:
             monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "test-bearer-token-123")

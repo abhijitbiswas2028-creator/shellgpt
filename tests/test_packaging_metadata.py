@@ -29,7 +29,7 @@ def test_packaging_declared_as_core_dependency():
 
     ``packaging`` is imported directly on three production paths
     (plugins/memory/hindsight/__init__.py, tools/lazy_deps.py,
-    hermes_cli/main.py) yet was undeclared, so it only reached users
+    shellgpt_cli/main.py) yet was undeclared, so it only reached users
     transitively. The slim Docker image shipped without it, silently
     disabling Hindsight append-mode and version-constraint checks. It must
     be a declared core dependency so it installs everywhere and the
@@ -56,7 +56,7 @@ def test_packaging_declared_as_core_dependency():
 # enforce the floor in both pyproject and the committed lockfile.
 _STARLETTE_CVE_FLOOR = (1, 0, 1)
 _UPDATE_DOWNGRADE_GUARD_FLOORS = {
-    # `hermes update` reinstalls exact pins from pyproject/lazy_deps. These
+    # `shellgpt update` reinstalls exact pins from pyproject/lazy_deps. These
     # reviewed CVE pins must not slide back to stale versions that downgrade
     # already-patched user environments.
     "cryptography": (50, 0, 0),
@@ -378,7 +378,7 @@ def test_security_pins_present_in_mirrored_lazy_features():
 
 
 def _extra_closure(extras: dict, name: str) -> set:
-    """Names of every extra reachable from ``hermes-agent[name]`` self-references."""
+    """Names of every extra reachable from ``shellgpt-agent[name]`` self-references."""
     seen, todo = set(), [name]
     while todo:
         cur = todo.pop()
@@ -386,7 +386,7 @@ def _extra_closure(extras: dict, name: str) -> set:
             continue
         seen.add(cur)
         for spec in extras.get(cur, ()):
-            if _distribution_name(spec) == "hermes-agent":
+            if _distribution_name(spec) == "shellgpt-agent":
                 todo.extend(spec.split("[", 1)[1].split("]", 1)[0].split(","))
     return seen
 
@@ -396,7 +396,7 @@ def test_termux_install_paths_never_request_uvloop():
 
     Core must not request ``uvicorn[standard]`` (that extra pulls uvloop on
     every non-Windows CPython), and neither Termux profile may reach the
-    opt-in ``uvloop`` extra through any chain of ``hermes-agent[...]``
+    opt-in ``uvloop`` extra through any chain of ``shellgpt-agent[...]``
     self-references. The lazy dashboard install mirrors the same rule.
     """
     from tools.lazy_deps import LAZY_DEPS

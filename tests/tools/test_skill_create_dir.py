@@ -14,13 +14,13 @@ import pytest
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    """Fresh HERMES_HOME with an empty local skills dir."""
-    home = tmp_path / ".hermes"
+    """Fresh SHELLGPT_HOME with an empty local skills dir."""
+    home = tmp_path / ".shellgpt"
     (home / "skills").mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("SHELLGPT_HOME", str(home))
 
-    import hermes_constants
-    monkeypatch.setattr(hermes_constants, "_hermes_home_cache", None, raising=False)
+    import shellgpt_constants
+    monkeypatch.setattr(shellgpt_constants, "_shellgpt_home_cache", None, raising=False)
 
     from agent import skill_utils as su
     su._external_dirs_cache_clear()

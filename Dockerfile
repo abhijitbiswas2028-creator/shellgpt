@@ -43,7 +43,7 @@ RUN apt-get -o Acquire::Retries=3 update && \
 FROM ghcr.io/astral-sh/uv:0.11.6-python3.13-trixie@sha256:b3c543b6c4f23a5f2df22866bd7857e5d304b67a564f4feab6ac22044dde719b AS uv_source
 # Node 26 source stage. Debian trixie's bundled nodejs is pinned to 20.x
 # which reached EOL in April 2026 — we copy node + npm from the upstream
-# node:26 image instead (Hermes pins its toolchain to Node 26 everywhere).
+# node:26 image instead (ShellGPT pins its toolchain to Node 26 everywhere).
 # Bookworm-based slim image used so the produced binary links
 # against glibc 2.36, which runs cleanly on our Debian 13 (trixie, glibc
 # 2.41) runtime.  Bumping to a new Node major is a one-line ARG change; see
@@ -52,22 +52,22 @@ FROM node:26-bookworm-slim@sha256:9e6f9357d371591e32ab6f2d8a26d63bdd0d17c29eee3f
 FROM debian:13.4
 
 # Disable Python stdout buffering to ensure logs are printed immediately.
-# Do not write .pyc files at runtime: /opt/hermes is immutable in the
+# Do not write .pyc files at runtime: /opt/shellgpt is immutable in the
 # published container and writable state belongs under /opt/data.
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Store Playwright browsers outside the volume mount so the build-time
 # install survives the /opt/data volume overlay at runtime.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/hermes/.playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/shellgpt/.playwright
 
 # Install system dependencies in one layer, clear APT cache.
 # tini was previously PID 1 to reap orphaned zombie processes (MCP stdio
-# subprocesses, git, bun, etc.) that would otherwise accumulate when hermes
+# subprocesses, git, bun, etc.) that would otherwise accumulate when shellgpt
 # ran as PID 1. See #15012. Phase 2 of the s6-overlay supervision plan
 # replaces tini with s6-overlay's /init (PID 1 = s6-svscan), which reaps
 # zombies non-blockingly on SIGCHLD and additionally supervises the main
-# hermes process, the dashboard, and per-profile gateways.
+# shellgpt process, the dashboard, and per-profile gateways.
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
     ca-certificates curl iputils-ping python3 python-is-python3 ripgrep ffmpeg gcc g++ make cmake python3-dev python3-venv libffi-dev libolm-dev libatomic1 procps git openssh-client docker-cli xz-utils && \
@@ -81,9 +81,9 @@ RUN apt-get -o Acquire::Retries=3 update && \
 # build, and cannot apt at run time either (unprivileged, no sudo). Only this
 # build step needs root —
 # Xvnc is a userspace X server, so the runtime user can drive it.
-#   docker build --build-arg HERMES_BOT_DESKTOP=1 .
-ARG HERMES_BOT_DESKTOP=0
-RUN if [ "$HERMES_BOT_DESKTOP" = "1" ]; then \
+#   docker build --build-arg SHELLGPT_BOT_DESKTOP=1 .
+ARG SHELLGPT_BOT_DESKTOP=0
+RUN if [ "$SHELLGPT_BOT_DESKTOP" = "1" ]; then \
         apt-get -o Acquire::Retries=3 update && \
         DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
         tigervnc-standalone-server xfce4-panel xfwm4 xfdesktop4 xfce4-settings xfce4-terminal \
@@ -104,12 +104,12 @@ v = sqlite3.sqlite_version_info; \
 sys.exit(f'linked SQLite {sqlite3.sqlite_version} still has the WAL-reset bug') if v < (3, 51, 3) else None; \
 db = sqlite3.connect(':memory:'); \
 db.execute(\"CREATE VIRTUAL TABLE docs USING fts5(content, tokenize='trigram')\"); \
-db.execute(\"INSERT INTO docs VALUES ('hermes')\"); \
+db.execute(\"INSERT INTO docs VALUES ('shellgpt')\"); \
 sys.exit('SQLite FTS5 trigram self-test failed') if db.execute(\"SELECT count(*) FROM docs WHERE docs MATCH 'erm'\").fetchone()[0] != 1 else None; \
 db.close()"
 
 # ---------- s6-overlay install ----------
-# s6-overlay provides supervision for the main hermes process, the dashboard,
+# s6-overlay provides supervision for the main shellgpt process, the dashboard,
 # and per-profile gateways. /init becomes PID 1 below — see ENTRYPOINT.
 #
 # Multi-arch: BuildKit auto-populates TARGETARCH (amd64 / arm64). s6-overlay
@@ -154,7 +154,7 @@ RUN set -eu; \
 
 # #34192 / #66679: backward-compat shim for orchestration templates that
 # still reference the legacy /usr/bin/tini entrypoint (Hostinger's
-# 'Hermes WebUI' catalog, NAS compose projects that preserve an old
+# 'ShellGPT WebUI' catalog, NAS compose projects that preserve an old
 # entrypoint on image update, etc.). A plain symlink to /init made the
 # path exist, but forwarded tini flags like `-g` into s6-overlay's
 # rc.init as the container CMD (`rc.init: 91: -g: not found`) and
@@ -164,8 +164,8 @@ RUN set -eu; \
 # updated.
 COPY --chmod=0755 docker/tini-shim.sh /usr/bin/tini
 
-# Non-root user for runtime; UID can be overridden via HERMES_UID at runtime
-RUN useradd -u 10000 -m -d /opt/data hermes
+# Non-root user for runtime; UID can be overridden via SHELLGPT_UID at runtime
+RUN useradd -u 10000 -m -d /opt/data shellgpt
 
 COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
@@ -184,22 +184,22 @@ COPY --from=node_source /usr/local/lib/node_modules/npm /usr/local/lib/node_modu
 RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
     ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
-WORKDIR /opt/hermes
+WORKDIR /opt/shellgpt
 
 # ---------- Layer-cached dependency install ----------
 # Copy only package manifests first so npm install + Playwright are cached
 # unless the lockfiles themselves change.
 #
-# ui-tui/packages/hermes-ink/ is copied IN FULL (not just its manifests)
+# ui-tui/packages/shellgpt-ink/ is copied IN FULL (not just its manifests)
 # because it is referenced as a `file:` workspace dependency from
 # ui-tui/package.json.  Copying the tree up front lets npm resolve the
 # workspace to real content instead of stopping at a bare package.json.
 COPY package.json package-lock.json ./
 COPY web/package.json web/
 COPY ui-tui/package.json ui-tui/
-COPY ui-tui/packages/hermes-ink/ ui-tui/packages/hermes-ink/
+COPY ui-tui/packages/shellgpt-ink/ ui-tui/packages/shellgpt-ink/
 # apps/shared/ is copied IN FULL because web/package.json references it as a
-# `file:` workspace dependency (same pattern as hermes-ink above).
+# `file:` workspace dependency (same pattern as shellgpt-ink above).
 COPY apps/shared/ apps/shared/
 
 # `npm_config_install_links=false` forces npm to install `file:` deps as
@@ -208,7 +208,7 @@ COPY apps/shared/ apps/shared/
 # explicitly anyway as defense-in-depth: the previous Debian-bundled npm
 # 9.x defaulted to install-as-copy, which produced a hidden
 # node_modules/.package-lock.json that permanently disagreed with the root
-# lock on the @hermes/ink entry, tripped the TUI launcher's
+# lock on the @shellgpt/ink entry, tripped the TUI launcher's
 # `_tui_need_npm_install()` check on every startup, and triggered a
 # runtime `npm install` that then failed with EACCES.  Keeping the env
 # guards against a future regression if the source npm version changes.
@@ -226,7 +226,7 @@ RUN npm install --prefer-offline --no-audit --fetch-retries=5 && \
 # chrome-headless-shell cannot open a window, so the dock's Browser icon needs the
 # full build. Same Chromium family as the shell, so agent and human share one
 # --user-data-dir. Gated: a build with no desktop has nothing to show it on.
-RUN if [ "$HERMES_BOT_DESKTOP" = "1" ]; then \
+RUN if [ "$SHELLGPT_BOT_DESKTOP" = "1" ]; then \
         for i in 1 2 3; do \
             npx playwright install chromium && break || \
             { [ "$i" = 3 ] && exit 1; echo "playwright chromium install failed (attempt $i); retrying in 10s"; sleep 10; }; \
@@ -273,13 +273,13 @@ RUN cd plugins/platforms/photon/sidecar && \
 # so Docker users can use these providers without requiring runtime
 # lazy-install access to PyPI (often blocked in containerized envs).
 #
-# The [otlp] extra contains the SDK/exporter imported by Hermes when Gateway
+# The [otlp] extra contains the SDK/exporter imported by ShellGPT when Gateway
 # Health export is enabled. Collector and observability-backend dependencies
-# remain external and are not part of the Hermes production image.
+# remain external and are not part of the ShellGPT production image.
 #
 # Catalog memory plugins (e.g. hindsight, since it left the tree) are not
 # baked in: their pip dependencies install at plugin-install time through
-# tools/lazy_deps.py into HERMES_LAZY_INSTALL_TARGET (the durable /opt/data
+# tools/lazy_deps.py into SHELLGPT_LAZY_INSTALL_TARGET (the durable /opt/data
 # volume, see below), so they survive container recreates (#38128).
 #
 # The Matrix gateway's deps ([matrix] extra) are baked in because
@@ -292,7 +292,7 @@ RUN cd plugins/platforms/photon/sidecar && \
 # Google Chat's [google-chat] extra (google-cloud-pubsub + Chat API clients)
 # is baked so hosted/immutable images can enable the adapter without writing
 # the sealed venv. Runtime --install-deps still routes through lazy_deps into
-# HERMES_LAZY_INSTALL_TARGET when the extra is not present.
+# SHELLGPT_LAZY_INSTALL_TARGET when the extra is not present.
 #
 # The editable link is created after the source copy below.
 COPY pyproject.toml uv.lock ./
@@ -310,12 +310,12 @@ RUN cd web && npm run build && \
 
 # ---------- Bot Screen X socket directory ----------
 # Xvnc would create this itself (/tmp is 1777); pre-creating it keeps ownership
-# deterministic when HERMES_UID is remapped between boots.
+# deterministic when SHELLGPT_UID is remapped between boots.
 RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
 
 # XDG_RUNTIME_DIR (set below) sits under a predictable name in world-writable /tmp.
 # Shipping it root-owned means stage2 finds a directory it trusts and chowns it.
-RUN mkdir -p /tmp/hermes-runtime && chmod 0700 /tmp/hermes-runtime
+RUN mkdir -p /tmp/shellgpt-runtime && chmod 0700 /tmp/shellgpt-runtime
 
 # ---------- Source code ----------
 # .dockerignore excludes node_modules, so the installs above survive.
@@ -323,50 +323,50 @@ RUN mkdir -p /tmp/hermes-runtime && chmod 0700 /tmp/hermes-runtime
 # the final read-only permissions at copy time so we skip the separate
 # `chmod -R` pass that previously walked ~30k files across the venv +
 # node_modules + source (21s amd64 / 222s arm64 — #49113).  `a+rX,go-w`
-# gives the non-root hermes user read + traverse but no write; root retains
+# gives the non-root shellgpt user read + traverse but no write; root retains
 # write so the build steps below don't need chmod u+w dances.
 COPY --link --chmod=a+rX,go-w . .
 
 # ---------- Permissions ----------
-# Link hermes-agent itself (editable). Deps are already installed in the
+# Link shellgpt-agent itself (editable). Deps are already installed in the
 # cached layer above; `--no-deps` makes this a fast egg-link creation with no
 # resolution or downloads.
 RUN uv pip install --no-cache-dir --no-deps -e "."
 
-# Wire the exec shim and install-method stamp.  Files under /opt/hermes are
+# Wire the exec shim and install-method stamp.  Files under /opt/shellgpt are
 # already root-owned (COPY, uv sync, npm install all run as root) and
-# read-only for the hermes user (go-w from the --chmod above).
+# read-only for the shellgpt user (go-w from the --chmod above).
 
 USER root
-RUN mkdir -p /opt/hermes/bin && \
-    cp /opt/hermes/docker/hermes-exec-shim.sh /opt/hermes/bin/hermes && \
-    chmod 0755 /opt/hermes /opt/hermes/bin/hermes && \
-    printf 'docker\n' > /opt/hermes/.install_method
+RUN mkdir -p /opt/shellgpt/bin && \
+    cp /opt/shellgpt/docker/shellgpt-exec-shim.sh /opt/shellgpt/bin/shellgpt && \
+    chmod 0755 /opt/shellgpt /opt/shellgpt/bin/shellgpt && \
+    printf 'docker\n' > /opt/shellgpt/.install_method
 # The ``.install_method`` stamp is baked next to the running code (the install
-# tree), NOT into $HERMES_HOME. $HERMES_HOME (/opt/data) is a shared data
+# tree), NOT into $SHELLGPT_HOME. $SHELLGPT_HOME (/opt/data) is a shared data
 # volume that is commonly bind-mounted from the host and even shared with a
 # host-side Desktop/CLI install; stamping it at boot used to clobber that
-# host install's marker and wrongly block its ``hermes update``. A code-scoped
+# host install's marker and wrongly block its ``shellgpt update``. A code-scoped
 # stamp is read first by detect_install_method() and is immune to the share.
 # Start as root so the s6-overlay stage2 hook can usermod/groupmod and chown
-# the data volume. Each supervised service then drops to the hermes user via
-# `s6-setuidgid hermes` in its run script. If HERMES_UID is unset, services
-# run as the default hermes user (UID 10000).
+# the data volume. Each supervised service then drops to the shellgpt user via
+# `s6-setuidgid shellgpt` in its run script. If SHELLGPT_UID is unset, services
+# run as the default shellgpt user (UID 10000).
 
 # ---------- Bake image provenance + build-time git revision ----------
 # The versioned, non-secret provenance marker is the authoritative runtime
 # signal that this filesystem came from an immutable image.  It deliberately
-# lives outside both /opt/hermes (which operators sometimes bind-mount as a
-# checkout) and /opt/data (the mutable HERMES_HOME volume).
+# lives outside both /opt/shellgpt (which operators sometimes bind-mount as a
+# checkout) and /opt/data (the mutable SHELLGPT_HOME volume).
 # .dockerignore excludes .git, so `git rev-parse HEAD` from inside the
-# container always returns nothing — meaning `hermes dump` reports
+# container always returns nothing — meaning `shellgpt dump` reports
 # "(unknown)" and the startup banner drops its `· upstream <sha>` suffix.
 # That makes support triage from container bug reports impossible:
 # we can't tell which commit the user is actually running.
 #
-# Fix: write the commit SHA passed via the HERMES_GIT_SHA build-arg to
-# /opt/hermes/.hermes_build_sha at build time, and have
-# hermes_cli/build_info.py read it at runtime.  Both `hermes dump` and
+# Fix: write the commit SHA passed via the SHELLGPT_GIT_SHA build-arg to
+# /opt/shellgpt/.shellgpt_build_sha at build time, and have
+# shellgpt_cli/build_info.py read it at runtime.  Both `shellgpt dump` and
 # banner.get_git_banner_state() try the baked SHA first, then fall back
 # to live `git rev-parse` for source installs (unchanged behaviour).
 #
@@ -375,16 +375,16 @@ RUN mkdir -p /opt/hermes/bin && \
 # to live-git lookup.  CI
 # (.github/workflows/docker.yml) passes ${{ github.sha }} so
 # every published image has it.
-ARG HERMES_GIT_SHA=
+ARG SHELLGPT_GIT_SHA=
 RUN set -eu; \
-    if [ -n "${HERMES_GIT_SHA}" ]; then \
-        printf '%s\n' "${HERMES_GIT_SHA}" > /opt/hermes/.hermes_build_sha; \
+    if [ -n "${SHELLGPT_GIT_SHA}" ]; then \
+        printf '%s\n' "${SHELLGPT_GIT_SHA}" > /opt/shellgpt/.shellgpt_build_sha; \
     fi; \
-    mkdir -p /etc/hermes; \
-    HERMES_GIT_SHA="${HERMES_GIT_SHA}" python3 -c 'import json, os, pathlib, tomllib; project = tomllib.loads(pathlib.Path("/opt/hermes/pyproject.toml").read_text(encoding="utf-8"))["project"]; marker = pathlib.Path("/etc/hermes/image-provenance.json"); marker.write_text(json.dumps({"schema": 1, "deployment_kind": "image", "manager": "docker", "image": "nousresearch/hermes-agent", "version": project["version"], "revision": os.environ.get("HERMES_GIT_SHA") or None}, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"); marker.chmod(0o444)'
+    mkdir -p /etc/shellgpt; \
+    SHELLGPT_GIT_SHA="${SHELLGPT_GIT_SHA}" python3 -c 'import json, os, pathlib, tomllib; project = tomllib.loads(pathlib.Path("/opt/shellgpt/pyproject.toml").read_text(encoding="utf-8"))["project"]; marker = pathlib.Path("/etc/shellgpt/image-provenance.json"); marker.write_text(json.dumps({"schema": 1, "deployment_kind": "image", "manager": "docker", "image": "nousresearch/shellgpt-agent", "version": project["version"], "revision": os.environ.get("SHELLGPT_GIT_SHA") or None}, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8"); marker.chmod(0o444)'
 
 # ---------- s6-overlay service wiring ----------
-# Static services declared at build time: main-hermes + dashboard.
+# Static services declared at build time: main-shellgpt + dashboard.
 # Per-profile gateway services are registered dynamically at runtime by
 # the profile create/delete hooks (Phase 4); they live under
 # /run/service/ (tmpfs) and are reconciled on container restart by
@@ -393,24 +393,24 @@ COPY docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
 
 # stage2-hook handles UID/GID remap, volume chown, config seeding,
 # skills sync — all the work the old entrypoint.sh did before
-# `exec hermes`. Wired in as cont-init.d/01- so it
+# `exec shellgpt`. Wired in as cont-init.d/01- so it
 # runs before user services start.
 #
 # 02-reconcile-profiles re-creates per-profile gateway s6 service
-# slots from $HERMES_HOME/profiles/<name>/ after a container restart
+# slots from $SHELLGPT_HOME/profiles/<name>/ after a container restart
 # (the /run/service/ scandir is tmpfs and wiped on restart). Phase 4.
 RUN mkdir -p /etc/cont-init.d && \
-    printf '#!/command/with-contenv sh\nexec /opt/hermes/docker/stage2-hook.sh\n' \
-        > /etc/cont-init.d/01-hermes-setup && \
-    chmod +x /etc/cont-init.d/01-hermes-setup
+    printf '#!/command/with-contenv sh\nexec /opt/shellgpt/docker/stage2-hook.sh\n' \
+        > /etc/cont-init.d/01-shellgpt-setup && \
+    chmod +x /etc/cont-init.d/01-shellgpt-setup
 COPY --chmod=0755 docker/cont-init.d/015-supervise-perms /etc/cont-init.d/015-supervise-perms
 COPY --chmod=0755 docker/cont-init.d/02-reconcile-profiles /etc/cont-init.d/02-reconcile-profiles
 
 # ---------- Runtime ----------
-ENV HERMES_WEB_DIST=/opt/hermes/hermes_cli/web_dist
+ENV SHELLGPT_WEB_DIST=/opt/shellgpt/shellgpt_cli/web_dist
 # Point the TUI launcher at the prebuilt bundle baked at build time (Layer 8:
 # `ui-tui && npm run build`). This makes _make_tui_argv take the prebuilt-bundle
-# fast path (`node --expose-gc /opt/hermes/ui-tui/dist/entry.js`) and skip the
+# fast path (`node --expose-gc /opt/shellgpt/ui-tui/dist/entry.js`) and skip the
 # _tui_need_npm_install / runtime `npm install` branch entirely — exactly the
 # nix/packaged-release path the launcher was designed for.
 #
@@ -424,11 +424,11 @@ ENV HERMES_WEB_DIST=/opt/hermes/hermes_cli/web_dist
 # embedded-chat (/api/pty) connections → ENOTEMPTY → the chat tab dies with a
 # 502 / "[session ended]". Pointing at the prebuilt bundle sidesteps the whole
 # check. (A separate launcher hardening is tracked independently.)
-ENV HERMES_TUI_DIR=/opt/hermes/ui-tui
-ENV HERMES_HOME=/opt/data
-ENV HERMES_WRITE_SAFE_ROOT=/opt/data
-ENV HERMES_DISABLE_LAZY_INSTALLS=1
-# The published image seals /opt/hermes (root-owned, read-only) so a runtime
+ENV SHELLGPT_TUI_DIR=/opt/shellgpt/ui-tui
+ENV SHELLGPT_HOME=/opt/data
+ENV SHELLGPT_WRITE_SAFE_ROOT=/opt/data
+ENV SHELLGPT_DISABLE_LAZY_INSTALLS=1
+# The published image seals /opt/shellgpt (root-owned, read-only) so a runtime
 # lazy install can't mutate the agent's own venv and brick it. But opt-in
 # backends (Firecrawl web search, Exa, Feishu, …) keep their SDKs in
 # tools/lazy_deps.py — deliberately NOT baked into [all] (see pyproject.toml
@@ -437,43 +437,43 @@ ENV HERMES_DISABLE_LAZY_INSTALLS=1
 # lazy_deps appends this dir to the END of sys.path, so a package installed
 # here can only ADD modules — it can never shadow or downgrade a core module,
 # so the sealed-venv guarantee holds even with installs re-enabled. The dir
-# is seeded + chowned to the hermes user by docker/stage2-hook.sh and lives
+# is seeded + chowned to the shellgpt user by docker/stage2-hook.sh and lives
 # on the /opt/data volume, so it persists across container recreates / image
 # updates (an ABI stamp invalidates it if a rebuild bumps the interpreter).
-ENV HERMES_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
+ENV SHELLGPT_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
 
 # Xfce, dbus and the display-allocation lock need one; containers have no logind
 # to create /run/user/<uid>. The default fallback ($HOME/.cache) is the /opt/data
 # volume, which a host-side install may share — two instances would then contend
 # for one lock. Container-scoped instead; seeded 0700 by docker/stage2-hook.sh.
-ENV XDG_RUNTIME_DIR=/tmp/hermes-runtime
+ENV XDG_RUNTIME_DIR=/tmp/shellgpt-runtime
 
 # `docker exec` privilege-drop shim. When operators run
-# `docker exec <c> hermes ...` they default to root, and any file the
-# command writes under $HERMES_HOME (auth.json, .env, config.yaml) ends
+# `docker exec <c> shellgpt ...` they default to root, and any file the
+# command writes under $SHELLGPT_HOME (auth.json, .env, config.yaml) ends
 # up root-owned and unreadable to the supervised gateway (UID 10000).
-# The shim lives at /opt/hermes/bin/hermes, sits earliest on PATH, and
-# transparently re-exec's the real venv binary via `s6-setuidgid hermes`
+# The shim lives at /opt/shellgpt/bin/shellgpt, sits earliest on PATH, and
+# transparently re-exec's the real venv binary via `s6-setuidgid shellgpt`
 # when invoked as root. Non-root callers (supervised processes,
-# `--user hermes`, etc.) hit the short-circuit path with no overhead.
+# `--user shellgpt`, etc.) hit the short-circuit path with no overhead.
 # Recursion is impossible because the shim exec's the venv binary by
-# absolute path (/opt/hermes/.venv/bin/hermes). See the shim source for
-# the opt-out env var (HERMES_DOCKER_EXEC_AS_ROOT=1).
-COPY --chmod=0755 docker/hermes-exec-shim.sh /opt/hermes/bin/hermes
-COPY --chmod=0755 docker/entrypoint-dispatch.sh /opt/hermes/docker/entrypoint-dispatch.sh
+# absolute path (/opt/shellgpt/.venv/bin/shellgpt). See the shim source for
+# the opt-out env var (SHELLGPT_DOCKER_EXEC_AS_ROOT=1).
+COPY --chmod=0755 docker/shellgpt-exec-shim.sh /opt/shellgpt/bin/shellgpt
+COPY --chmod=0755 docker/entrypoint-dispatch.sh /opt/shellgpt/docker/entrypoint-dispatch.sh
 
 # Pre-s6 entrypoint.sh did `source .venv/bin/activate` which exported
 # the venv bin onto PATH; Architecture B's main-wrapper.sh does the
 # same for the container's main process, but `docker exec` and our
 # cont-init.d scripts don't pass through the wrapper. Expose the venv
-# bin globally so `docker exec <container> hermes ...` and any
-# subprocess that doesn't activate the venv first still find hermes.
+# bin globally so `docker exec <container> shellgpt ...` and any
+# subprocess that doesn't activate the venv first still find shellgpt.
 #
-# /opt/hermes/bin is prepended ahead of the venv so the privilege-drop
+# /opt/shellgpt/bin is prepended ahead of the venv so the privilege-drop
 # shim wins PATH resolution. The shim's last act is to exec the venv
 # binary by absolute path, so this PATH ordering is transparent to
 # every other consumer.
-ENV PATH="/opt/hermes/bin:/opt/hermes/.venv/bin:/opt/data/.local/bin:${PATH}"
+ENV PATH="/opt/shellgpt/bin:/opt/shellgpt/.venv/bin:/opt/data/.local/bin:${PATH}"
 RUN mkdir -p /opt/data
 VOLUME [ "/opt/data" ]
 
@@ -502,12 +502,12 @@ VOLUME [ "/opt/data" ]
 #   docker run <image> sleep infinity   → entrypoint-dispatch.sh sleep infinity
 #   docker run <image> --tui            → entrypoint-dispatch.sh --tui
 #
-# main-wrapper.sh handles arg routing (bare-exec vs. hermes
-# subcommand vs. no-args), drops to the hermes user via s6-setuidgid,
+# main-wrapper.sh handles arg routing (bare-exec vs. shellgpt
+# subcommand vs. no-args), drops to the shellgpt user via s6-setuidgid,
 # and exec's the final program so its exit code becomes the container
 # exit code. The dispatcher preserves that contract across both the
 # supervised PID-1 path and the non-PID-1 fallback path. Without the
 # wrapper-as-ENTRYPOINT, leading-dash args like `--version` would be
 # intercepted by /init's POSIX shell.
-ENTRYPOINT [ "/opt/hermes/docker/entrypoint-dispatch.sh" ]
+ENTRYPOINT [ "/opt/shellgpt/docker/entrypoint-dispatch.sh" ]
 CMD [ ]

@@ -10,19 +10,19 @@ import os
 
 import yaml
 
-from hermes_constants import get_hermes_home
+from shellgpt_constants import get_shellgpt_home
 from tools.checkpoint_manager import CheckpointManager, checkpoint_footprint_notice
 
 
 def _write_config(enabled: bool, cap_mb: int) -> None:
-    home = get_hermes_home()
+    home = get_shellgpt_home()
     home.mkdir(parents=True, exist_ok=True)
     (home / "config.yaml").write_text(
         yaml.safe_dump({"checkpoints": {"enabled": enabled, "max_total_size_mb": cap_mb}}), encoding="utf-8")
 
 
 def test_notice_only_when_enabled_and_over_cap(tmp_path, monkeypatch):
-    base = get_hermes_home() / "checkpoints"
+    base = get_shellgpt_home() / "checkpoints"
     monkeypatch.setattr("tools.checkpoint_manager.CHECKPOINT_BASE", base)
     work = tmp_path / "proj"
     work.mkdir()

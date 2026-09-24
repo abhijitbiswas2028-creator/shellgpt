@@ -23,8 +23,8 @@ import { SETTING_IDS, settingElementId } from './settings-manifest'
 import { UninstallSection } from './uninstall-section'
 import { useSettingDeepLink } from './use-setting-deep-link'
 
-const RELEASE_NOTES_URL = 'https://github.com/NousResearch/hermes-agent/releases'
-const INSTALLER_URL = 'https://hermes-agent.nousresearch.com/'
+const RELEASE_NOTES_URL = 'https://github.com/NousResearch/shellgpt-agent/releases'
+const INSTALLER_URL = 'https://shellgpt-agent.nousresearch.com/'
 
 function relativeTime(ms: number | undefined, a: Translations['settings']['about']) {
   if (!ms) {
@@ -145,7 +145,7 @@ function AppUpdatesSettings({ includeUninstall }: { includeUninstall: boolean })
                     <p className="mt-1 text-xs text-muted-foreground">{a.bundleSwapPendingDesc}</p>
                     <Button
                       className="mt-2"
-                      onClick={() => void window.hermesDesktop?.relaunchApp?.()}
+                      onClick={() => void window.shellgptDesktop?.relaunchApp?.()}
                       size="sm"
                       variant="textStrong"
                     >
@@ -162,7 +162,7 @@ function AppUpdatesSettings({ includeUninstall }: { includeUninstall: boolean })
                         href={INSTALLER_URL}
                         onClick={event => {
                           event.preventDefault()
-                          void window.hermesDesktop?.openExternal?.(INSTALLER_URL)
+                          void window.shellgptDesktop?.openExternal?.(INSTALLER_URL)
                         }}
                         rel="noreferrer"
                         target="_blank"
@@ -232,7 +232,7 @@ function AppUpdatesSettings({ includeUninstall }: { includeUninstall: boolean })
                 href={RELEASE_NOTES_URL}
                 onClick={event => {
                   event.preventDefault()
-                  void window.hermesDesktop?.openExternal?.(RELEASE_NOTES_URL)
+                  void window.shellgptDesktop?.openExternal?.(RELEASE_NOTES_URL)
                 }}
                 rel="noreferrer"
                 target="_blank"

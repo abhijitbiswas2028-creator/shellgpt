@@ -31,12 +31,12 @@ from agent.proxy_sources import iron_proxy as ip
 
 
 @pytest.fixture
-def hermes_home(tmp_path, monkeypatch):
-    """Point HERMES_HOME at a temp dir so install paths don't touch the real $HOME."""
+def shellgpt_home(tmp_path, monkeypatch):
+    """Point SHELLGPT_HOME at a temp dir so install paths don't touch the real $HOME."""
 
-    home = tmp_path / "hermes"
+    home = tmp_path / "shellgpt"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("SHELLGPT_HOME", str(home))
     # Make sure no stale provider keys influence discovery.
     for key in list(os.environ):
         if key.endswith("_API_KEY"):
@@ -153,7 +153,7 @@ def test_audit_log_kwarg_does_not_inject_audit_path_v039(tmp_path):
 
 
 
-def test_load_mappings_handles_corrupt_json(hermes_home):
+def test_load_mappings_handles_corrupt_json(shellgpt_home):
     state = ip._proxy_state_dir()
     (state / "mappings.json").write_text("{not json", encoding="utf-8")
     assert ip.load_mappings() == []
@@ -204,7 +204,7 @@ def test_load_mappings_handles_corrupt_json(hermes_home):
 
 # ── GPG release-signature verification (maxpetrusenko P1) ────────────────────
 
-def test_verify_checksums_signature_skips_without_gpg(hermes_home, monkeypatch, tmp_path):
+def test_verify_checksums_signature_skips_without_gpg(shellgpt_home, monkeypatch, tmp_path):
     """No gpg on PATH → degrade gracefully (return False), do not raise."""
     monkeypatch.setattr(ip.shutil, "which", lambda name: None)
     cks = tmp_path / "checksums.txt"
@@ -256,7 +256,7 @@ def test_pick_tar_member_rejects_path_traversal():
 
 
 
-def test_start_proxy_idempotent_when_already_running(hermes_home, monkeypatch):
+def test_start_proxy_idempotent_when_already_running(shellgpt_home, monkeypatch):
     state = ip._proxy_state_dir()
     pid_file = state / "iron-proxy.pid"
     pid_file.write_text("12345")
@@ -302,7 +302,7 @@ def test_start_proxy_idempotent_when_already_running(hermes_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_subprocess_env_strips_unrelated_secrets(hermes_home, monkeypatch):
+def test_subprocess_env_strips_unrelated_secrets(shellgpt_home, monkeypatch):
     """``_build_proxy_subprocess_env`` must NOT carry every host secret
     over to the proxy.  /proc/<pid>/environ on the proxy would otherwise
     expose all of them to same-uid local processes."""
@@ -331,7 +331,7 @@ def test_subprocess_env_strips_unrelated_secrets(hermes_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_ca_key_created_with_0o600(hermes_home, monkeypatch):
+def test_ca_key_created_with_0o600(shellgpt_home, monkeypatch):
     """The CA private key must NEVER exist on disk with default umask
     permissions, even transiently.  Fix: open with explicit mode=0o600
     so the very first byte is written under tight perms."""
@@ -366,7 +366,7 @@ def test_ca_key_created_with_0o600(hermes_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_ensure_audit_log_creates_with_0o600(hermes_home, tmp_path):
+def test_ensure_audit_log_creates_with_0o600(shellgpt_home, tmp_path):
     audit = tmp_path / "audit.log"
     ip.ensure_audit_log(audit)
     assert audit.exists()
@@ -374,7 +374,7 @@ def test_ensure_audit_log_creates_with_0o600(hermes_home, tmp_path):
     assert mode == 0o600
 
 
-def test_ensure_audit_log_tightens_existing_perms(hermes_home, tmp_path):
+def test_ensure_audit_log_tightens_existing_perms(shellgpt_home, tmp_path):
     audit = tmp_path / "audit.log"
     audit.write_text("preexisting content\n")
     os.chmod(audit, 0o644)
@@ -388,7 +388,7 @@ def test_ensure_audit_log_tightens_existing_perms(hermes_home, tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_proxy_state_dir_is_0o700(hermes_home):
+def test_proxy_state_dir_is_0o700(shellgpt_home):
     state = ip._proxy_state_dir()
     mode = state.stat().st_mode & 0o777
     assert mode == 0o700
@@ -448,7 +448,7 @@ def test_proxy_state_dir_is_0o700(hermes_home):
 
 
 
-def test_mappings_roundtrip_preserves_headers_and_aliases(hermes_home):
+def test_mappings_roundtrip_preserves_headers_and_aliases(shellgpt_home):
     m = ip.TokenMapping(
         proxy_token=ip.mint_proxy_token("gemini"),
         real_env_name="GEMINI_API_KEY",
@@ -475,11 +475,11 @@ def test_mappings_roundtrip_preserves_headers_and_aliases(hermes_home):
 
 
 
-def test_ensure_management_token_persists_and_is_stable(hermes_home):
+def test_ensure_management_token_persists_and_is_stable(shellgpt_home):
     t1 = ip.ensure_management_token()
     t2 = ip.ensure_management_token()
     assert t1 == t2
-    assert t1.startswith("hermes-mgmt-")
+    assert t1.startswith("shellgpt-mgmt-")
     p = ip._proxy_state_dir() / "management.token"
     assert p.exists()
     assert (p.stat().st_mode & 0o777) == 0o600
@@ -487,7 +487,7 @@ def test_ensure_management_token_persists_and_is_stable(hermes_home):
 
 
 
-def test_reload_proxy_refuses_when_not_running(hermes_home, monkeypatch):
+def test_reload_proxy_refuses_when_not_running(shellgpt_home, monkeypatch):
     monkeypatch.setattr(ip, "_read_pid", lambda: None)
     with pytest.raises(RuntimeError, match="not running"):
         ip.reload_proxy()
@@ -495,7 +495,7 @@ def test_reload_proxy_refuses_when_not_running(hermes_home, monkeypatch):
 
 
 
-def test_reload_proxy_posts_bearer_to_management_endpoint(hermes_home, monkeypatch):
+def test_reload_proxy_posts_bearer_to_management_endpoint(shellgpt_home, monkeypatch):
     monkeypatch.setattr(ip, "_read_pid", lambda: 4242)
     monkeypatch.setattr(ip, "_pid_alive", lambda pid: True)
     monkeypatch.setattr(
@@ -529,7 +529,7 @@ def test_reload_proxy_posts_bearer_to_management_endpoint(hermes_home, monkeypat
     assert captured["auth"] == f"Bearer {token}"
 
 
-def test_start_proxy_injects_management_key_env(hermes_home, monkeypatch):
+def test_start_proxy_injects_management_key_env(shellgpt_home, monkeypatch):
     """When the generated config has a management listener, start_proxy
     must inject the bearer key env var — v0.39 refuses to start when
     api_key_env is empty."""
@@ -537,13 +537,13 @@ def test_start_proxy_injects_management_key_env(hermes_home, monkeypatch):
     cfg_path = ip._proxy_state_dir() / "proxy.yaml"
     cfg = ip.build_proxy_config(
         mappings=[_sample_mapping()],
-        ca_cert=hermes_home / "ca.crt",
-        ca_key=hermes_home / "ca.key",
+        ca_cert=shellgpt_home / "ca.crt",
+        ca_key=shellgpt_home / "ca.key",
         http_listen=["127.0.0.1:9090"],
     )
     ip.write_proxy_config(cfg)
-    (hermes_home / "bin").mkdir(parents=True, exist_ok=True)
-    fake_bin = hermes_home / "bin" / "iron-proxy"
+    (shellgpt_home / "bin").mkdir(parents=True, exist_ok=True)
+    fake_bin = shellgpt_home / "bin" / "iron-proxy"
     fake_bin.write_text("#!/bin/sh\nsleep 60\n")
     fake_bin.chmod(0o755)
 
@@ -565,7 +565,7 @@ def test_start_proxy_injects_management_key_env(hermes_home, monkeypatch):
 
     ip.start_proxy(binary=fake_bin, config_path=cfg_path, install_if_missing=False)
     assert captured_env.get(ip._MGMT_API_KEY_ENV)
-    assert captured_env[ip._MGMT_API_KEY_ENV].startswith("hermes-mgmt-")
+    assert captured_env[ip._MGMT_API_KEY_ENV].startswith("shellgpt-mgmt-")
 
 
 # ---------------------------------------------------------------------------
@@ -603,14 +603,14 @@ def test_start_proxy_injects_management_key_env(hermes_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_docker_egress_node_options_uses_sentinel(hermes_home, monkeypatch):
+def test_docker_egress_node_options_uses_sentinel(shellgpt_home, monkeypatch):
     """``_egress_proxy_args_for_docker`` should NOT put NODE_OPTIONS in
     env_overrides directly; it uses a sentinel key
-    ``_HERMES_EGRESS_NODE_OPTIONS_APPEND`` so DockerEnvironment can
+    ``_SHELLGPT_EGRESS_NODE_OPTIONS_APPEND`` so DockerEnvironment can
     append-merge with the operator's existing NODE_OPTIONS."""
 
     from tools.environments.docker import _egress_proxy_args_for_docker
-    from hermes_cli.config import load_config, save_config
+    from shellgpt_cli.config import load_config, save_config
 
     state = ip._proxy_state_dir()
     ca = state / "ca.crt"
@@ -634,7 +634,7 @@ def test_docker_egress_node_options_uses_sentinel(hermes_home, monkeypatch):
 
     _, env, _ = _egress_proxy_args_for_docker()
     # The egress dict should contain the sentinel, NOT a raw NODE_OPTIONS.
-    assert env.get("_HERMES_EGRESS_NODE_OPTIONS_APPEND") == "--use-openssl-ca"
+    assert env.get("_SHELLGPT_EGRESS_NODE_OPTIONS_APPEND") == "--use-openssl-ca"
     assert "NODE_OPTIONS" not in env, (
         "NODE_OPTIONS in egress env_overrides would clobber the operator's "
         "docker_env NODE_OPTIONS — that's exactly the bug arshkumarsingh "
@@ -654,7 +654,7 @@ def test_docker_egress_node_options_uses_sentinel(hermes_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_persisted_nonce_roundtrip(hermes_home, monkeypatch):
+def test_persisted_nonce_roundtrip(shellgpt_home, monkeypatch):
     """Write the nonce next to the pidfile (simulating one CLI invocation
     finishing start_proxy), then verify a fresh _read_persisted_nonce
     can pick it up — that's what cross-process _pid_alive uses."""
@@ -677,7 +677,7 @@ def test_persisted_nonce_roundtrip(hermes_home, monkeypatch):
 
 
 
-def test_get_status_probes_configured_bind_host(hermes_home, monkeypatch):
+def test_get_status_probes_configured_bind_host(shellgpt_home, monkeypatch):
     """get_status must probe the configured bind host (e.g. the docker
     bridge IP), not loopback unconditionally."""
 
@@ -705,7 +705,7 @@ def test_get_status_probes_configured_bind_host(hermes_home, monkeypatch):
 
 
 def test_partial_bitwarden_secrets_honor_allow_env_fallback(
-    hermes_home, monkeypatch,
+    shellgpt_home, monkeypatch,
 ):
     """The missing-secret branch's own error message tells operators to
     set proxy.allow_env_fallback — so the flag must actually work there
@@ -733,7 +733,7 @@ def test_partial_bitwarden_secrets_honor_allow_env_fallback(
 
 
 def test_partial_bitwarden_secrets_raise_without_fallback(
-    hermes_home, monkeypatch,
+    shellgpt_home, monkeypatch,
 ):
     """Strict default: missing BWS secrets raise."""
 
@@ -754,7 +754,7 @@ def test_partial_bitwarden_secrets_raise_without_fallback(
 
 
 def test_bitwarden_importerror_raise_without_fallback(
-    hermes_home, monkeypatch,
+    shellgpt_home, monkeypatch,
 ):
     """Strict default: ImportError on BWS module raises when
     allow_env_fallback is unset, matching the sibling branches."""

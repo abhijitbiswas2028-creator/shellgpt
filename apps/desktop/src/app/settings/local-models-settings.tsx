@@ -22,7 +22,7 @@ import {
   searchHFModels,
   setLocalServer,
   sideloadLocalModel
-} from '@/hermes'
+} from '@/shellgpt'
 import { useI18n } from '@/i18n'
 import {
   Check,
@@ -49,7 +49,7 @@ import {
   watchLocalRuntimeJobs
 } from '@/store/local-runtime-jobs'
 import { notify, notifyError } from '@/store/notifications'
-import type { LocalCatalogModel, LocalHardware, LocalModelsStatus } from '@/types/hermes'
+import type { LocalCatalogModel, LocalHardware, LocalModelsStatus } from '@/types/shellgpt'
 
 import { ListRow, Pill, SettingsContent, SettingsSection, SettingsSkeleton } from './primitives'
 import { ActiveProfileNote } from './profile-scope'
@@ -970,7 +970,7 @@ function BrowseSection({ onChanged }: { onChanged: () => void }) {
   )
 
   const sideload = useCallback(() => {
-    window.hermesDesktop
+    window.shellgptDesktop
       .selectPaths({ filters: [{ extensions: ['gguf'], name: 'GGUF models' }], title: copy.sideloadTitle })
       .then(paths => {
         if (!paths.length) {

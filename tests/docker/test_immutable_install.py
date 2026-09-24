@@ -2,11 +2,11 @@
 
 Build the real image and verify at runtime:
 
-  1. /opt/hermes is not writable by the hermes user (immutable install tree)
-  2. A stale "docker" stamp in $HERMES_HOME is healed (removed) on boot
+  1. /opt/shellgpt is not writable by the shellgpt user (immutable install tree)
+  2. A stale "docker" stamp in $SHELLGPT_HOME is healed (removed) on boot
 
 The hosted write-policy env (PYTHONDONTWRITEBYTECODE,
-HERMES_DISABLE_LAZY_INSTALLS, ...) is covered by
+SHELLGPT_DISABLE_LAZY_INSTALLS, ...) is covered by
 test_immutable_install_permissions.py.
 """
 from __future__ import annotations
@@ -19,10 +19,10 @@ from tests.docker.conftest import (
 )
 
 
-def test_install_tree_not_writable_by_hermes(
+def test_install_tree_not_writable_by_shellgpt(
     built_image: str, container_name: str,
 ) -> None:
-    """The hermes user must not be able to modify /opt/hermes.
+    """The shellgpt user must not be able to modify /opt/shellgpt.
 
     The install tree (source, venv, TUI bundle, node_modules) must remain
     root-owned and non-writable so an agent session cannot self-modify
@@ -32,25 +32,25 @@ def test_install_tree_not_writable_by_hermes(
 
     r = docker_exec_sh(
         container_name,
-        # Try to create a file under /opt/hermes as the hermes user
-        "touch /opt/hermes/test_write 2>&1 && "
+        # Try to create a file under /opt/shellgpt as the shellgpt user
+        "touch /opt/shellgpt/test_write 2>&1 && "
         "echo WRITE_SUCCEEDED || echo WRITE_FAILED",
         timeout=10,
     )
     assert "WRITE_FAILED" in r.stdout, (
-        f"hermes user can write to /opt/hermes (install tree not immutable): "
+        f"shellgpt user can write to /opt/shellgpt (install tree not immutable): "
         f"{r.stdout}"
     )
 
     # Also check a key subdirectory
     r = docker_exec_sh(
         container_name,
-        "touch /opt/hermes/.venv/test_write 2>&1 && "
+        "touch /opt/shellgpt/.venv/test_write 2>&1 && "
         "echo WRITE_SUCCEEDED || echo WRITE_FAILED",
         timeout=10,
     )
     assert "WRITE_FAILED" in r.stdout, (
-        f"hermes user can write to /opt/hermes/.venv: {r.stdout}"
+        f"shellgpt user can write to /opt/shellgpt/.venv: {r.stdout}"
     )
 
 
@@ -61,7 +61,7 @@ def test_install_tree_not_writable_by_hermes(
 def test_stale_docker_stamp_in_home_is_healed_on_boot(
     built_image: str, container_name: str,
 ) -> None:
-    """A stale 'docker' stamp left in $HERMES_HOME by an older image
+    """A stale 'docker' stamp left in $SHELLGPT_HOME by an older image
     must be removed on boot so shared homes self-heal."""
     # Start container, write a stale stamp
     start_container(built_image, container_name)
@@ -87,6 +87,6 @@ def test_stale_docker_stamp_in_home_is_healed_on_boot(
         timeout=10,
     )
     assert "HEALED" in r.stdout or r.stdout.strip() != "docker", (
-        f"stale 'docker' stamp in $HERMES_HOME was not healed on boot: "
+        f"stale 'docker' stamp in $SHELLGPT_HOME was not healed on boot: "
         f"{r.stdout}"
     )

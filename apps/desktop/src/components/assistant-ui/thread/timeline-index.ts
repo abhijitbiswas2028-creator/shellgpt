@@ -1,4 +1,4 @@
-import { capabilityScoped, hermesApi, type ProfileScope } from '@/api/client'
+import { capabilityScoped, shellgptApi, type ProfileScope } from '@/api/client'
 
 import type { TimelineEntry } from './timeline-data'
 
@@ -66,7 +66,7 @@ export function fetchTimelineIndex(id: string, scope: ProfileScope, beyondRowId?
     query.set('after_row_id', String(previous.cursor))
   }
 
-  const request = hermesApi<TimelinePage>({
+  const request = shellgptApi<TimelinePage>({
     ...route,
     path: `/api/sessions/${encodeURIComponent(id)}/timeline?${query}`,
     passive: true

@@ -31,7 +31,7 @@ class TestCreditsNoticesToggle:
         agent = _agent_with_state()
         received = []
         agent.notice_callback = received.append
-        with patch("hermes_cli.config.load_config", return_value=_cfg(False)):
+        with patch("shellgpt_cli.config.load_config", return_value=_cfg(False)):
             agent._emit_credits_notices()
         assert received == []
 
@@ -41,7 +41,7 @@ class TestCreditsNoticesToggle:
         agent = _agent_with_state()
         received = []
         agent.notice_callback = received.append
-        with patch("hermes_cli.config.load_config", side_effect=RuntimeError("boom")):
+        with patch("shellgpt_cli.config.load_config", side_effect=RuntimeError("boom")):
             agent._emit_credits_notices()
         assert any(getattr(n, "key", None) == "credits.depleted" for n in received)
 

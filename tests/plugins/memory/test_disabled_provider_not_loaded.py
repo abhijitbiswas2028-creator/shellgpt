@@ -1,6 +1,6 @@
 """A user-installed memory provider parked in ``plugins.disabled`` must not load.
 
-The Plugins hub / `hermes plugins disable` write the deny-list; ``plugins/memory`` never read it, so
+The Plugins hub / `shellgpt plugins disable` write the deny-list; ``plugins/memory`` never read it, so
 the UI said "disabled" while the provider kept loading at every agent init.
 """
 
@@ -29,13 +29,13 @@ def register(ctx):
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes-home"
-    d = hermes_home / "plugins" / "fakemem"
+    shellgpt_home = tmp_path / "shellgpt-home"
+    d = shellgpt_home / "plugins" / "fakemem"
     d.mkdir(parents=True)
     (d / "plugin.yaml").write_text("name: fakemem-manifest\nkind: exclusive\n", encoding="utf-8")
     (d / "__init__.py").write_text(_PROVIDER, encoding="utf-8")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    return hermes_home
+    monkeypatch.setenv("SHELLGPT_HOME", str(shellgpt_home))
+    return shellgpt_home
 
 
 def test_disabled_user_provider_is_found_but_never_loaded(home):

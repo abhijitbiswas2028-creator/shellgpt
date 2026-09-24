@@ -59,7 +59,7 @@ export function UninstallSection() {
 
   useEffect(() => {
     let alive = true
-    const bridge = window.hermesDesktop?.uninstall
+    const bridge = window.shellgptDesktop?.uninstall
 
     if (!bridge) {
       setLoading(false)
@@ -88,7 +88,7 @@ export function UninstallSection() {
     }
   }, [])
 
-  const bridge = window.hermesDesktop?.uninstall
+  const bridge = window.shellgptDesktop?.uninstall
 
   if (!bridge) {
     return null
@@ -157,7 +157,7 @@ export function UninstallSection() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">{t.settings.uninstallSection.uninstallHermes}</p>
+            <p className="text-sm font-medium">{t.settings.uninstallSection.uninstallShellGPT}</p>
             <p className="text-xs text-muted-foreground">{u.chooseHowMuch}</p>
             <div className="mt-1 flex flex-col gap-2">
               {visibleOptions.map(opt => (

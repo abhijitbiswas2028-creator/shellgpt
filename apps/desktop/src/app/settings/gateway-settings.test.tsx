@@ -1,4 +1,4 @@
-import { GatewayReauthRequiredError } from '@hermes/shared'
+import { GatewayReauthRequiredError } from '@shellgpt/shared'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -46,7 +46,7 @@ const localConnection = {
 beforeEach(() => {
   getConnectionConfig.mockResolvedValue(localConnection)
   saveConnectionConfig.mockResolvedValue(localConnection)
-  Object.defineProperty(window, 'hermesDesktop', {
+  Object.defineProperty(window, 'shellgptDesktop', {
     configurable: true,
     value: { getConnectionConfig, saveConnectionConfig }
   })
@@ -96,7 +96,7 @@ describe('GatewaySettings', () => {
       orgs: [{ id: 'new-team', name: 'New team', role: 'OWNER' }]
     })
 
-    Object.assign(window.hermesDesktop, {
+    Object.assign(window.shellgptDesktop, {
       oauthLogoutConnectionConfig,
       connections: { save },
       cloud: { status: vi.fn().mockResolvedValue({ signedIn: true }), discover, agentSignIn }
@@ -128,7 +128,7 @@ describe('GatewaySettings', () => {
     }
     const agentSignIn = vi.fn()
     const applyConnectionConfig = vi.fn()
-    Object.assign(window.hermesDesktop, {
+    Object.assign(window.shellgptDesktop, {
       applyConnectionConfig,
       cloud: {
         status: vi.fn().mockResolvedValue({ signedIn: false }),
@@ -150,7 +150,7 @@ describe('GatewaySettings', () => {
     getConnectionConfig.mockResolvedValue({ ...localConnection, mode: 'cloud' })
     const agentSignIn = vi.fn().mockResolvedValue({ connected: true })
     const applyConnectionConfig = vi.fn().mockResolvedValue({ ...localConnection, mode: 'cloud' })
-    Object.assign(window.hermesDesktop, {
+    Object.assign(window.shellgptDesktop, {
       applyConnectionConfig,
       cloud: {
         status: vi.fn().mockResolvedValue({ signedIn: true }),
@@ -181,7 +181,7 @@ describe('GatewaySettings', () => {
     expect(agentSignIn).toHaveBeenCalledExactlyOnceWith('https://new-a.example')
     expect(applyConnectionConfig).toHaveBeenCalledTimes(1)
   })
-  // #114856: an env-pinned remote (HERMES_DESKTOP_REMOTE_URL) whose session
+  // #114856: an env-pinned remote (SHELLGPT_DESKTOP_REMOTE_URL) whose session
   // lapsed could not be re-authenticated from Settings → Gateway at all — the
   // whole remote block (URL + probe + Authentication) was hidden behind
   // `!state.envOverride`, so the recovery card's "Gateway settings" escape led
@@ -214,7 +214,7 @@ describe('GatewaySettings', () => {
       // Sign-in persists the URL + oauth mode before opening the login window;
       // the saved echo must stay remote or the signing sequence resets.
       saveConnectionConfig.mockResolvedValue({ ...envRemote, remoteAuthMode: 'oauth' })
-      Object.assign(window.hermesDesktop, { oauthLoginConnectionConfig, probeConnectionConfig })
+      Object.assign(window.shellgptDesktop, { oauthLoginConnectionConfig, probeConnectionConfig })
 
       render(<GatewaySettings embedded />)
 
@@ -230,7 +230,7 @@ describe('GatewaySettings', () => {
       const oauthLoginConnectionConfig = vi.fn()
 
       getConnectionConfig.mockResolvedValue({ ...envRemote, envOverride: false, remoteOauthConnected: false })
-      Object.assign(window.hermesDesktop, {
+      Object.assign(window.shellgptDesktop, {
         oauthLoginConnectionConfig,
         probeConnectionConfig: vi.fn().mockResolvedValue(oauthProbe)
       })
@@ -279,7 +279,7 @@ describe('GatewaySettings', () => {
     const mountCloudPanelWith = (cloud: Record<string, unknown>) => {
       getConnectionConfig.mockResolvedValue({ ...localConnection, mode: 'cloud', remoteUrl: saved.url })
       registry.value = { connections: [saved] }
-      Object.assign(window.hermesDesktop, { cloud })
+      Object.assign(window.shellgptDesktop, { cloud })
     }
 
     it('re-signs a lapsed saved gateway session via the portal cascade and retries the switch', async () => {
@@ -289,7 +289,7 @@ describe('GatewaySettings', () => {
         agentSignIn: vi.fn().mockResolvedValue({ connected: true })
       })
       const oauthLogoutConnectionConfig = vi.fn().mockResolvedValue({ ok: true })
-      Object.assign(window.hermesDesktop, { oauthLogoutConnectionConfig })
+      Object.assign(window.shellgptDesktop, { oauthLogoutConnectionConfig })
       selectConnection.mockRejectedValueOnce(reauthError).mockResolvedValueOnce(undefined)
 
       render(<GatewaySettings embedded />)
@@ -300,9 +300,9 @@ describe('GatewaySettings', () => {
       expect(selectConnection).toHaveBeenNthCalledWith(1, saved.id)
       expect(selectConnection).toHaveBeenNthCalledWith(2, saved.id)
       expect(oauthLogoutConnectionConfig).toHaveBeenCalledWith(saved.url)
-      expect(window.hermesDesktop!.cloud!.agentSignIn).toHaveBeenCalledWith(saved.url)
+      expect(window.shellgptDesktop!.cloud!.agentSignIn).toHaveBeenCalledWith(saved.url)
       // The portal session was already live: no interactive portal login.
-      expect(window.hermesDesktop!.cloud!.login).not.toHaveBeenCalled()
+      expect(window.shellgptDesktop!.cloud!.login).not.toHaveBeenCalled()
       registry.value = null
     })
 
@@ -318,7 +318,7 @@ describe('GatewaySettings', () => {
       registry.value = { connections: [savedWithoutUrl] }
       const agentSignIn = vi.fn()
       const oauthLogoutConnectionConfig = vi.fn()
-      Object.assign(window.hermesDesktop, {
+      Object.assign(window.shellgptDesktop, {
         oauthLogoutConnectionConfig,
         cloud: {
           status: vi.fn().mockResolvedValue({ signedIn: true }),
@@ -345,7 +345,7 @@ describe('GatewaySettings', () => {
         agentSignIn: vi.fn()
       })
       const oauthLogoutConnectionConfig = vi.fn()
-      Object.assign(window.hermesDesktop, { oauthLogoutConnectionConfig })
+      Object.assign(window.shellgptDesktop, { oauthLogoutConnectionConfig })
       selectConnection.mockRejectedValueOnce(new Error('Timed out connecting to "Research".'))
 
       render(<GatewaySettings embedded />)
@@ -354,7 +354,7 @@ describe('GatewaySettings', () => {
 
       await waitFor(() => expect(selectConnection).toHaveBeenCalledTimes(1))
       expect(oauthLogoutConnectionConfig).not.toHaveBeenCalled()
-      expect(window.hermesDesktop!.cloud!.agentSignIn).not.toHaveBeenCalled()
+      expect(window.shellgptDesktop!.cloud!.agentSignIn).not.toHaveBeenCalled()
       registry.value = null
     })
 
@@ -365,7 +365,7 @@ describe('GatewaySettings', () => {
         agentSignIn: vi.fn().mockResolvedValue({ connected: true })
       })
       const oauthLogoutConnectionConfig = vi.fn().mockResolvedValue({ ok: true })
-      Object.assign(window.hermesDesktop, { oauthLogoutConnectionConfig })
+      Object.assign(window.shellgptDesktop, { oauthLogoutConnectionConfig })
       selectConnection.mockRejectedValueOnce(reauthError).mockResolvedValueOnce(undefined)
 
       render(<GatewaySettings embedded />)
@@ -373,8 +373,8 @@ describe('GatewaySettings', () => {
       fireEvent.click(within(row).getByRole('button', { name: 'Use gateway' }))
 
       await waitFor(() => expect(selectConnection).toHaveBeenCalledTimes(2))
-      expect(window.hermesDesktop!.cloud!.login).toHaveBeenCalledTimes(1)
-      expect(window.hermesDesktop!.cloud!.agentSignIn).toHaveBeenCalledWith(saved.url)
+      expect(window.shellgptDesktop!.cloud!.login).toHaveBeenCalledTimes(1)
+      expect(window.shellgptDesktop!.cloud!.agentSignIn).toHaveBeenCalledWith(saved.url)
       registry.value = null
     })
   })

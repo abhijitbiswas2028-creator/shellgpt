@@ -1113,7 +1113,7 @@ class TestGetModelContextLength:
         "provider, custom_providers",
         [
             ("custom:codex-proxy", [{"name": "codex-proxy", "base_url": "http://127.0.0.1:8317/v1", "api_mode": "codex_responses"}]),
-            ("openai-codex", None),  # HERMES_CODEX_BASE_URL / model.base_url proxy per #115902
+            ("openai-codex", None),  # SHELLGPT_CODEX_BASE_URL / model.base_url proxy per #115902
         ],
     )
     def test_codex_route_behind_proxy_resolves_codex_oauth_window(self, provider, custom_providers):
@@ -1596,7 +1596,7 @@ class TestGrok43StaleCacheGuard:
 
 
     def test_stale_grok_4_3_dropped_and_reresolves_to_1m(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
         import importlib
         import agent.model_metadata as mm
         importlib.reload(mm)
@@ -1609,7 +1609,7 @@ class TestGrok43StaleCacheGuard:
 
 
     def test_grok_4_not_clobbered(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
         import importlib
         import agent.model_metadata as mm
         importlib.reload(mm)
@@ -1679,8 +1679,8 @@ class TestMoAContextLength:
             yaml.safe_dump(payload, f)
 
     def test_moa_resolves_from_aggregator(self, tmp_path, monkeypatch):
-        home = str(tmp_path / ".hermes")
-        monkeypatch.setenv("HERMES_HOME", home)
+        home = str(tmp_path / ".shellgpt")
+        monkeypatch.setenv("SHELLGPT_HOME", home)
         self._write_moa_config(home, {"provider": "openrouter", "model": "anthropic/claude-opus-4.8"})
 
         # The MoA preset name + virtual base_url would otherwise fall through to
@@ -1698,8 +1698,8 @@ class TestMoAContextLength:
         from agent.context_compressor import ContextCompressor
 
         configured_context = 600_000
-        home = str(tmp_path / ".hermes")
-        monkeypatch.setenv("HERMES_HOME", home)
+        home = str(tmp_path / ".shellgpt")
+        monkeypatch.setenv("SHELLGPT_HOME", home)
         self._write_moa_config(
             home,
             {"provider": "custom:example", "model": "example-model"},

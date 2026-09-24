@@ -2,18 +2,18 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { listAllProfileSessions, setSessionArchived } from '@/hermes'
+import { listAllProfileSessions, setSessionArchived } from '@/shellgpt'
 import { en } from '@/i18n/en'
 import { $messagingSessions, $sessions, setMessagingSessions, setSessions } from '@/store/session'
-import type { SessionInfo } from '@/types/hermes'
+import type { SessionInfo } from '@/types/shellgpt'
 
 import { SessionsSettings } from './sessions-settings'
 
 vi.mock('@/i18n', () => ({ useI18n: () => ({ t: en }) }))
 
-vi.mock('@/hermes', async importOriginal => ({
+vi.mock('@/shellgpt', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  getHermesConfigRecord: vi.fn().mockResolvedValue({ config: {} }),
+  getShellGPTConfigRecord: vi.fn().mockResolvedValue({ config: {} }),
   listAllProfileSessions: vi.fn(),
   setSessionArchived: vi.fn().mockResolvedValue(undefined)
 }))

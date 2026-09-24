@@ -172,8 +172,8 @@ class TestFeishuAdapterMessaging(unittest.TestCase):
         Without this UA tag the Feishu server does not push group @mention
         events over the WebSocket transport. The long-lived client must also
         stay off asyncio's shared default executor. See
-        https://github.com/NousResearch/hermes-agent/issues/50656
-        https://github.com/NousResearch/hermes-agent/issues/78318
+        https://github.com/NousResearch/shellgpt-agent/issues/50656
+        https://github.com/NousResearch/shellgpt-agent/issues/78318
         """
         from gateway.config import PlatformConfig
         from plugins.platforms.feishu.adapter import FeishuAdapter
@@ -654,11 +654,11 @@ class TestAdapterBehavior(unittest.TestCase):
         # Case 1: bot has only a name (open_id not hydrated / not configured).
         # Name fallback is the only available signal for any mention.
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._bot_name = "Hermes Bot"
+        adapter._bot_name = "ShellGPT Bot"
         sender_id = SimpleNamespace(open_id="ou_any", user_id=None)
 
         name_only_mention = SimpleNamespace(
-            name="Hermes Bot",
+            name="ShellGPT Bot",
             id=SimpleNamespace(open_id=None, user_id=None),
         )
         different_mention = SimpleNamespace(
@@ -677,14 +677,14 @@ class TestAdapterBehavior(unittest.TestCase):
         # open_id must NOT admit (IDs override names).
         adapter2 = FeishuAdapter(PlatformConfig())
         adapter2._bot_open_id = "ou_bot"
-        adapter2._bot_name = "Hermes Bot"
+        adapter2._bot_name = "ShellGPT Bot"
 
         same_name_other_id_mention = SimpleNamespace(
-            name="Hermes Bot",
+            name="ShellGPT Bot",
             id=SimpleNamespace(open_id="ou_other", user_id="u_other"),
         )
         bot_mention = SimpleNamespace(
-            name="Hermes Bot",
+            name="ShellGPT Bot",
             id=SimpleNamespace(open_id="ou_bot", user_id=None),
         )
 
@@ -966,7 +966,7 @@ class TestAdapterBehavior(unittest.TestCase):
     @patch.dict(
         os.environ,
         {
-            "HERMES_FEISHU_TEXT_BATCH_MAX_MESSAGES": "2",
+            "SHELLGPT_FEISHU_TEXT_BATCH_MAX_MESSAGES": "2",
         },
         clear=True,
     )
@@ -1024,8 +1024,8 @@ class TestAdapterBehavior(unittest.TestCase):
     @patch.dict(
         os.environ,
         {
-            "HERMES_FEISHU_TEXT_BATCH_MAX_MESSAGES": "8",
-            "HERMES_FEISHU_TEXT_BATCH_MAX_CHARS": "4000",
+            "SHELLGPT_FEISHU_TEXT_BATCH_MAX_MESSAGES": "8",
+            "SHELLGPT_FEISHU_TEXT_BATCH_MAX_CHARS": "4000",
         },
         clear=False,
     )
@@ -1169,7 +1169,7 @@ class TestAdapterBehavior(unittest.TestCase):
                 return _FakeResponse()
 
         with tempfile.TemporaryDirectory() as tmp:
-            with patch.dict(os.environ, {"HERMES_HOME": tmp}, clear=False):
+            with patch.dict(os.environ, {"SHELLGPT_HOME": tmp}, clear=False):
                 adapter = FeishuAdapter(PlatformConfig())
 
                 async def _run() -> tuple[str, str]:
@@ -1258,7 +1258,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from plugins.platforms.feishu.adapter import FeishuAdapter
 
         with tempfile.TemporaryDirectory() as temp_home:
-            with patch.dict(os.environ, {"HERMES_HOME": temp_home}, clear=False):
+            with patch.dict(os.environ, {"SHELLGPT_HOME": temp_home}, clear=False):
                 first = FeishuAdapter(PlatformConfig())
                 self.assertFalse(asyncio.run(first._is_duplicate("om_same")))
                 second = FeishuAdapter(PlatformConfig())
@@ -1410,7 +1410,7 @@ class TestAdapterBehavior(unittest.TestCase):
 
         content = (
             "确认已入库 ✓\n"
-            "文件路径：`/root/.hermes/profiles/agent_cto/cron/jobs.json`\n"
+            "文件路径：`/root/.shellgpt/profiles/agent_cto/cron/jobs.json`\n"
             "**解码后的内容：**\n"
             "```json\n"
             '{"cron": "list"}\n'
@@ -1436,7 +1436,7 @@ class TestAdapterBehavior(unittest.TestCase):
                 [
                     {
                         "tag": "md",
-                        "text": "确认已入库 ✓\n文件路径：`/root/.hermes/profiles/agent_cto/cron/jobs.json`\n**解码后的内容：**",
+                        "text": "确认已入库 ✓\n文件路径：`/root/.shellgpt/profiles/agent_cto/cron/jobs.json`\n**解码后的内容：**",
                     }
                 ],
                 [{"tag": "md", "text": "```json\n{\"cron\": \"list\"}\n```"}],
@@ -1560,15 +1560,15 @@ class TestWebhookSecurity(unittest.TestCase):
 
     def test_webhook_request_rejects_oversized_chunked_body_while_reading(self):
         from gateway.config import PlatformConfig
-        from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+        from shellgpt_constants import reset_shellgpt_home_override, set_shellgpt_home_override
         from plugins.platforms.feishu.adapter import FeishuAdapter, _FEISHU_WEBHOOK_MAX_BODY_BYTES
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            token = set_hermes_home_override(tmpdir)
+            token = set_shellgpt_home_override(tmpdir)
             try:
                 adapter = FeishuAdapter(PlatformConfig())
             finally:
-                reset_hermes_home_override(token)
+                reset_shellgpt_home_override(token)
             content = _FakeRequestContent(b"A" * (_FEISHU_WEBHOOK_MAX_BODY_BYTES + 2))
             request = SimpleNamespace(
                 remote="127.0.0.1",
@@ -1643,7 +1643,7 @@ class TestDedupTTL(unittest.TestCase):
         from plugins.platforms.feishu.adapter import FeishuAdapter
 
         with tempfile.TemporaryDirectory() as temp_home:
-            with patch.dict(os.environ, {"HERMES_HOME": temp_home}, clear=True):
+            with patch.dict(os.environ, {"SHELLGPT_HOME": temp_home}, clear=True):
                 adapter = FeishuAdapter(PlatformConfig())
                 adapter._dedup_state_path.parent.mkdir(parents=True, exist_ok=True)
                 adapter._dedup_state_path.write_text(
@@ -1696,13 +1696,13 @@ class TestDedupTTL(unittest.TestCase):
         from gateway.config import PlatformConfig
         from plugins.platforms.feishu.adapter import FeishuAdapter
 
-        # The class-level env wipe drops the per-test HERMES_HOME, so the adapter resolves
-        # its dedup store under the operator's real ~/.hermes and every id a live gateway
+        # The class-level env wipe drops the per-test SHELLGPT_HOME, so the adapter resolves
+        # its dedup store under the operator's real ~/.shellgpt and every id a live gateway
         # persisted leaks into writes[-1]. Pin the store to a scratch path instead.
         # Kept open for the whole test: _persist_seen_message_ids mkdirs the store's
         # parent back, so closing it early leaks an empty scratch dir per run.
         with tempfile.TemporaryDirectory() as scratch:
-            with patch("plugins.platforms.feishu.adapter.get_hermes_home", return_value=Path(scratch)):
+            with patch("plugins.platforms.feishu.adapter.get_shellgpt_home", return_value=Path(scratch)):
                 adapter = FeishuAdapter(PlatformConfig())
             writes = []
             calls = [0]
@@ -1765,12 +1765,12 @@ class TestFeishuMentionMap(unittest.TestCase):
         mention = SimpleNamespace(
             key="@_user_1",
             id=SimpleNamespace(open_id="ou_bot", user_id=""),
-            name="Hermes",
+            name="ShellGPT",
         )
         ref = _build_mentions_map([mention], _FeishuBotIdentity(open_id="ou_bot"))["@_user_1"]
         self.assertTrue(ref.is_self)
         self.assertEqual(ref.open_id, "ou_bot")
-        self.assertEqual(ref.name, "Hermes")
+        self.assertEqual(ref.name, "ShellGPT")
 
 
     def test_build_mentions_map_name_match_does_not_override_mismatching_open_id(self):
@@ -1783,11 +1783,11 @@ class TestFeishuMentionMap(unittest.TestCase):
         human_with_same_name = SimpleNamespace(
             key="@_user_1",
             id=SimpleNamespace(open_id="ou_human", user_id=""),
-            name="Hermes Bot",
+            name="ShellGPT Bot",
         )
         result = _build_mentions_map(
             [human_with_same_name],
-            _FeishuBotIdentity(open_id="ou_bot", name="Hermes Bot"),
+            _FeishuBotIdentity(open_id="ou_bot", name="ShellGPT Bot"),
         )
         self.assertFalse(result["@_user_1"].is_self)
 
@@ -1801,12 +1801,12 @@ class TestFeishuMentionMap(unittest.TestCase):
         bot_mention = SimpleNamespace(
             key="@_user_1",
             id=SimpleNamespace(open_id="ou_bot_actual", user_id=""),
-            name="Hermes Bot",
+            name="ShellGPT Bot",
         )
         # Bot identity has name but no open_id yet (hydration pending).
         result = _build_mentions_map(
             [bot_mention],
-            _FeishuBotIdentity(open_id="", name="Hermes Bot"),
+            _FeishuBotIdentity(open_id="", name="ShellGPT Bot"),
         )
         self.assertTrue(result["@_user_1"].is_self)
 
@@ -1819,7 +1819,7 @@ class TestFeishuMentionHint(unittest.TestCase):
         from plugins.platforms.feishu.adapter import FeishuMentionRef, _build_mention_hint
 
         refs = [
-            FeishuMentionRef(name="Hermes", open_id="ou_bot", is_self=True),
+            FeishuMentionRef(name="ShellGPT", open_id="ou_bot", is_self=True),
             FeishuMentionRef(name="Alice", open_id="ou_alice"),
         ]
         self.assertEqual(
@@ -1843,7 +1843,7 @@ class TestFeishuMentionHint(unittest.TestCase):
 
 
 class TestFeishuStripLeadingSelf(unittest.TestCase):
-    def _make_refs(self, *, self_name="Hermes", other_name=None):
+    def _make_refs(self, *, self_name="ShellGPT", other_name=None):
         from plugins.platforms.feishu.adapter import FeishuMentionRef
 
         refs = [FeishuMentionRef(name=self_name, open_id="ou_bot", is_self=True)]
@@ -1856,7 +1856,7 @@ class TestFeishuStripLeadingSelf(unittest.TestCase):
         from plugins.platforms.feishu.adapter import _strip_edge_self_mentions
 
         result = _strip_edge_self_mentions(
-            "@Hermes @Alice make a group", self._make_refs(other_name="Alice")
+            "@ShellGPT @Alice make a group", self._make_refs(other_name="Alice")
         )
         self.assertEqual(result, "@Alice make a group")
 
@@ -1865,7 +1865,7 @@ class TestFeishuStripLeadingSelf(unittest.TestCase):
         from plugins.platforms.feishu.adapter import _strip_edge_self_mentions
 
         # Terminal punct after the mention — strip the mention, keep the punct.
-        result = _strip_edge_self_mentions("look up docs @Hermes.", self._make_refs())
+        result = _strip_edge_self_mentions("look up docs @ShellGPT.", self._make_refs())
         self.assertEqual(result, "look up docs.")
 
     def test_preserves_trailing_self_before_non_terminal_char(self):
@@ -1873,9 +1873,9 @@ class TestFeishuStripLeadingSelf(unittest.TestCase):
 
         # Non-terminal char (here a Chinese particle) follows — preserve.
         result = _strip_edge_self_mentions(
-            "please don't @Hermes anymore", self._make_refs()
+            "please don't @ShellGPT anymore", self._make_refs()
         )
-        self.assertEqual(result, "please don't @Hermes anymore")
+        self.assertEqual(result, "please don't @ShellGPT anymore")
 
 
     def test_returns_input_when_no_self_refs(self):
@@ -1890,10 +1890,10 @@ class TestFeishuNormalizeText(unittest.TestCase):
     def test_renders_self_mention_with_name(self):
         from plugins.platforms.feishu.adapter import _normalize_feishu_text, FeishuMentionRef
 
-        refs = {"@_user_1": FeishuMentionRef(name="Hermes", open_id="ou_bot", is_self=True)}
+        refs = {"@_user_1": FeishuMentionRef(name="ShellGPT", open_id="ou_bot", is_self=True)}
         self.assertEqual(
             _normalize_feishu_text("stop pinging @_user_1 please", refs),
-            "stop pinging @Hermes please",
+            "stop pinging @ShellGPT please",
         )
 
     def test_at_all_rendered_as_english_literal(self):
@@ -1995,7 +1995,7 @@ class TestFeishuNormalizeWithMentions(unittest.TestCase):
             "en_us": {
                 "content": [
                     [
-                        {"tag": "at", "user_id": "@_user_1", "user_name": "Hermes"},
+                        {"tag": "at", "user_id": "@_user_1", "user_name": "ShellGPT"},
                         {"tag": "text", "text": " check this"},
                     ]
                 ]
@@ -2004,7 +2004,7 @@ class TestFeishuNormalizeWithMentions(unittest.TestCase):
         bot_mention = SimpleNamespace(
             key="@_user_1",
             id=SimpleNamespace(open_id="ou_bot", user_id=""),
-            name="Hermes",
+            name="ShellGPT",
         )
         normalized = normalize_feishu_message(
             message_type="post",
@@ -2033,7 +2033,7 @@ class TestFeishuPostMentionsBot(unittest.TestCase):
         adapter = self._build_adapter()
         self.assertTrue(
             adapter._post_mentions_bot(
-                [FeishuMentionRef(name="Hermes", open_id="ou_bot", is_self=True)]
+                [FeishuMentionRef(name="ShellGPT", open_id="ou_bot", is_self=True)]
             )
         )
         self.assertFalse(
@@ -2050,7 +2050,7 @@ class TestFeishuExtractMessageContent(unittest.TestCase):
         adapter = FeishuAdapter.__new__(FeishuAdapter)
         adapter._bot_open_id = "ou_bot"
         adapter._bot_user_id = ""
-        adapter._bot_name = "Hermes"
+        adapter._bot_name = "ShellGPT"
         adapter._download_feishu_message_resources = AsyncMock(return_value=([], []))
         return adapter
 
@@ -2085,7 +2085,7 @@ class TestFeishuProcessInboundMessage(unittest.TestCase):
         adapter = FeishuAdapter.__new__(FeishuAdapter)
         adapter._bot_open_id = "ou_bot"
         adapter._bot_user_id = ""
-        adapter._bot_name = "Hermes"
+        adapter._bot_name = "ShellGPT"
         adapter._download_feishu_message_resources = AsyncMock(return_value=([], []))
         adapter._fetch_message_text = AsyncMock(return_value=None)
         adapter.get_chat_info = AsyncMock(return_value={"name": "Test Chat"})
@@ -2182,7 +2182,7 @@ class TestFeishuProcessInboundMessage(unittest.TestCase):
         bot_mention = SimpleNamespace(
             key="@_user_1",
             id=SimpleNamespace(open_id="ou_bot", user_id=""),
-            name="Hermes",
+            name="ShellGPT",
         )
         alice = SimpleNamespace(
             key="@_user_2",
@@ -2277,7 +2277,7 @@ class TestFeishuFetchMessageText(unittest.TestCase):
         adapter = FeishuAdapter.__new__(FeishuAdapter)
         adapter._bot_open_id = "ou_bot"
         adapter._bot_user_id = ""
-        adapter._bot_name = "Hermes"
+        adapter._bot_name = "ShellGPT"
         adapter._message_text_cache = OrderedDict()
         adapter._client = Mock()
         adapter._build_get_message_request = Mock(return_value=object())
@@ -2294,7 +2294,7 @@ class TestFeishuFetchMessageText(unittest.TestCase):
             key="@_user_1",
             id="ou_bot",
             id_type="open_id",
-            name="Hermes",
+            name="ShellGPT",
         )
         parent = SimpleNamespace(
             body=SimpleNamespace(content=json.dumps({"text": "@_user_1 hi"})),
@@ -2308,7 +2308,7 @@ class TestFeishuFetchMessageText(unittest.TestCase):
 
         # The rendered text should still have the bot name substituted.
         result = asyncio.run(adapter._fetch_message_text("m_parent"))
-        self.assertEqual(result, "@Hermes hi")
+        self.assertEqual(result, "@ShellGPT hi")
 
 
 class TestFeishuMentionEndToEnd(unittest.TestCase):
@@ -2320,7 +2320,7 @@ class TestFeishuMentionEndToEnd(unittest.TestCase):
         adapter = FeishuAdapter.__new__(FeishuAdapter)
         adapter._bot_open_id = "ou_bot"
         adapter._bot_user_id = ""
-        adapter._bot_name = "Hermes"
+        adapter._bot_name = "ShellGPT"
         adapter._download_feishu_message_resources = AsyncMock(return_value=([], []))
         adapter._fetch_message_text = AsyncMock(return_value=None)
         adapter.get_chat_info = AsyncMock(return_value={"name": "Test Chat"})
@@ -2374,7 +2374,7 @@ class TestFeishuMentionEndToEnd(unittest.TestCase):
         bot_mention = SimpleNamespace(
             key="@_user_1",
             id=SimpleNamespace(open_id="ou_bot", user_id=""),
-            name="Hermes",
+            name="ShellGPT",
         )
         alice_mention = SimpleNamespace(
             key="@_user_2",
@@ -2384,7 +2384,7 @@ class TestFeishuMentionEndToEnd(unittest.TestCase):
         post_content = json.dumps({
             "zh_cn": {
                 "content": [[
-                    {"tag": "at", "user_id": "@_user_1", "user_name": "Hermes"},
+                    {"tag": "at", "user_id": "@_user_1", "user_name": "ShellGPT"},
                     {"tag": "at", "user_id": "@_user_2", "user_name": "Alice"},
                     {"tag": "text", "text": " review the spec with Alice"},
                 ]]
@@ -2409,10 +2409,10 @@ class TestFeishuMentionEndToEnd(unittest.TestCase):
         event = adapter._dispatch_inbound_event.call_args.args[0]
         # Hint surfaces Alice; bot excluded because is_self=True.
         self.assertIn("[Mentioned: Alice (open_id=ou_alice)]", event.text)
-        self.assertNotIn("Hermes (open_id=", event.text)
-        # Body: leading @Hermes stripped, Alice preserved, trailing text intact.
+        self.assertNotIn("ShellGPT (open_id=", event.text)
+        # Body: leading @ShellGPT stripped, Alice preserved, trailing text intact.
         self.assertIn("@Alice review the spec with Alice", event.text)
-        self.assertNotIn("@Hermes @Alice", event.text)
+        self.assertNotIn("@ShellGPT @Alice", event.text)
 
 
 # ---------------------------------------------------------------------------
@@ -2488,14 +2488,14 @@ def test_hydrated_bot_identity_wins_over_stale_env_values(fake_lark_requests, mo
     """#16993: /bot/v3/info runs even when FEISHU_BOT_* are configured, and the hydrated identity
     replaces the env values so a stale id from an old app registration can't break @mention gating."""
     monkeypatch.setenv("FEISHU_BOT_OPEN_ID", "ou_env")
-    monkeypatch.setenv("FEISHU_BOT_NAME", "Env Hermes")
+    monkeypatch.setenv("FEISHU_BOT_NAME", "Env ShellGPT")
     adapter = _plain_feishu_adapter()
     assert adapter._bot_open_id == "ou_env"
     requests = []
 
     def _request(req):
         requests.append(req)
-        return _bot_info_response("ou_hydrated", "Hydrated Hermes")
+        return _bot_info_response("ou_hydrated", "Hydrated ShellGPT")
 
     adapter._client = SimpleNamespace(request=_request)
 
@@ -2503,7 +2503,7 @@ def test_hydrated_bot_identity_wins_over_stale_env_values(fake_lark_requests, mo
 
     assert [r.uri for r in requests] == ["/open-apis/bot/v3/info"]
     assert adapter._bot_open_id == "ou_hydrated"
-    assert adapter._bot_name == "Hydrated Hermes"
+    assert adapter._bot_name == "Hydrated ShellGPT"
 
 
 def test_bot_sender_name_is_fetched_via_basic_batch_and_cached(fake_lark_requests):

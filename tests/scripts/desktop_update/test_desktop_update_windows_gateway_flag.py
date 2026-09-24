@@ -1,6 +1,6 @@
 """The Windows hand-off's `--gateway` flag, source-level (Linux CI cannot run PowerShell).
 
-`hermes update --gateway` (re)starts the local messaging gateway after the
+`shellgpt update --gateway` (re)starts the local messaging gateway after the
 update. A Desktop served by a remote gateway (#117529) must not ask for that:
 the restarted local gateway shares the remote host's channel credentials and
 becomes a competing long-poll consumer — Telegram answers the conflict by
@@ -38,9 +38,9 @@ def test_successful_local_update_restarts_all_gateways_after_verification() -> N
     remote-served Desktop must retain its ``-NoGateway`` opt-out.
     """
     source = _handoff_source()
-    verify = 'Invoke-HermesStep $pythonExe @("-c", $verifyCode) "verify"'
+    verify = 'Invoke-ShellGPTStep $pythonExe @("-c", $verifyCode) "verify"'
     restart = (
-        'Invoke-HermesStep $pythonExe @("-m", "hermes_cli.main", '
+        'Invoke-ShellGPTStep $pythonExe @("-m", "shellgpt_cli.main", '
         '"gateway", "start", "--all") "gateway restart"'
     )
 

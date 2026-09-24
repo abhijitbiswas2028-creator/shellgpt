@@ -13,7 +13,7 @@ import {
   getAllSessionMessages,
   getLatestSessionMessages,
   setSessionArchived
-} from '@/hermes'
+} from '@/shellgpt'
 import { useI18n } from '@/i18n'
 import {
   type ChatMessage,
@@ -133,7 +133,7 @@ import { $archivedSessions } from '@/store/sidebar-archive'
 import { restoreSessionTodosFromSnapshot } from '@/store/todos'
 import { dropTranscriptTail, dropTranscriptTailEverywhere, saveTranscriptTail } from '@/store/transcript-tail-cache'
 import { isWatchWindow } from '@/store/windows'
-import type { SessionCreateResponse, SessionMessage, SessionResumeResult, UsageStats } from '@/types/hermes'
+import type { SessionCreateResponse, SessionMessage, SessionResumeResult, UsageStats } from '@/types/shellgpt'
 
 import { navigateToWorkspacePage, NEW_CHAT_ROUTE, sessionRoute, SETTINGS_ROUTE } from '../../../routes'
 import type { ClientSessionState, SidebarNavItem } from '../../../types'

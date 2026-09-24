@@ -7,7 +7,7 @@ import pytest
 from agent.ssl_verify import resolve_httpx_verify
 from run_agent import AIAgent
 
-_CA_ENV_VARS = ("HERMES_CA_BUNDLE", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "HTTPS_PROXY")
+_CA_ENV_VARS = ("SHELLGPT_CA_BUNDLE", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "HTTPS_PROXY")
 
 
 @pytest.fixture

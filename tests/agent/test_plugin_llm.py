@@ -418,9 +418,9 @@ class TestConfigDrivenPolicy:
     def test_policy_loaded_from_yaml(self, tmp_path, monkeypatch):
         from agent.plugin_llm import _resolve_trust_policy
 
-        hermes_home = tmp_path / ".hermes"
-        hermes_home.mkdir()
-        (hermes_home / "config.yaml").write_text(
+        shellgpt_home = tmp_path / ".shellgpt"
+        shellgpt_home.mkdir()
+        (shellgpt_home / "config.yaml").write_text(
             """
 plugins:
   entries:
@@ -436,8 +436,8 @@ plugins:
 """,
             encoding="utf-8",
         )
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-        from hermes_cli import config as _config_mod
+        monkeypatch.setenv("SHELLGPT_HOME", str(shellgpt_home))
+        from shellgpt_cli import config as _config_mod
         _config_mod._config_cache = None  # type: ignore[attr-defined]
 
         policy = _resolve_trust_policy("my-plugin")
@@ -452,11 +452,11 @@ plugins:
     def test_missing_plugin_entry_yields_default_deny(self, tmp_path, monkeypatch):
         from agent.plugin_llm import _resolve_trust_policy
 
-        hermes_home = tmp_path / ".hermes"
-        hermes_home.mkdir()
-        (hermes_home / "config.yaml").write_text("plugins: {}\n", encoding="utf-8")
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-        from hermes_cli import config as _config_mod
+        shellgpt_home = tmp_path / ".shellgpt"
+        shellgpt_home.mkdir()
+        (shellgpt_home / "config.yaml").write_text("plugins: {}\n", encoding="utf-8")
+        monkeypatch.setenv("SHELLGPT_HOME", str(shellgpt_home))
+        from shellgpt_cli import config as _config_mod
         _config_mod._config_cache = None  # type: ignore[attr-defined]
 
         policy = _resolve_trust_policy("never-configured")
@@ -474,7 +474,7 @@ plugins:
 class TestPluginContextIntegration:
 
     def test_ctx_llm_uses_manifest_key_for_policy(self):
-        from hermes_cli.plugins import PluginContext, PluginManifest, PluginManager
+        from shellgpt_cli.plugins import PluginContext, PluginManifest, PluginManager
 
         manifest = PluginManifest(
             name="bare-name", source="test", key="image_gen/openai"
@@ -544,7 +544,7 @@ class TestHookMode:
     the real ``invoke_hook`` machinery, and check the call landed."""
 
     def test_complete_works_from_post_tool_call_hook(self):
-        from hermes_cli.plugins import PluginContext, PluginManifest, PluginManager
+        from shellgpt_cli.plugins import PluginContext, PluginManifest, PluginManager
 
         manifest = PluginManifest(name="hook-plugin", source="test", key="hook-plugin")
         manager = PluginManager()

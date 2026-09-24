@@ -63,52 +63,52 @@ function appendUniquePathEntries(entries, { delimiter = path.delimiter } = {}) {
 }
 
 /**
- * Hermes-managed Node.js directories, in preferred lookup order.
+ * ShellGPT-managed Node.js directories, in preferred lookup order.
  *
  * There are two on-disk layouts. `scripts/install.ps1` unpacks portable Node
- * straight into `%LOCALAPPDATA%\hermes\node` (node.exe at the root, no `bin\`);
+ * straight into `%LOCALAPPDATA%\shellgpt\node` (node.exe at the root, no `bin\`);
  * `scripts/install.sh` and the node-bootstrap helper use the POSIX
- * `$HERMES_HOME/node/bin`. Emit BOTH on every platform so mixed and migrated
+ * `$SHELLGPT_HOME/node/bin`. Emit BOTH on every platform so mixed and migrated
  * installs resolve, leading with the layout native to the current platform.
  *
  * This is the single source of truth for the ordering rule on the Node side —
  * `main.ts` imports it rather than keeping its own copy. Mirrors
- * `iter_hermes_node_dirs()` in hermes_constants.py, which the Electron main
+ * `iter_shellgpt_node_dirs()` in shellgpt_constants.py, which the Electron main
  * process cannot import.
  */
-function hermesManagedNodePathEntries(
-  hermesHome,
+function shellgptManagedNodePathEntries(
+  shellgptHome,
   { platform = process.platform, pathModule = pathModuleForPlatform(platform) }: any = {}
 ) {
-  if (!hermesHome) {
+  if (!shellgptHome) {
     return []
   }
 
-  const root = pathModule.join(hermesHome, 'node')
+  const root = pathModule.join(shellgptHome, 'node')
   const bin = pathModule.join(root, 'bin')
 
   return platform === 'win32' ? [root, bin] : [bin, root]
 }
 
 function buildDesktopBackendPath({
-  hermesHome,
+  shellgptHome,
   venvRoot,
   currentPath = '',
   platform = process.platform,
   pathModule = pathModuleForPlatform(platform)
 }: any = {}) {
   const delimiter = delimiterForPlatform(platform)
-  const hermesNodeDirs = hermesManagedNodePathEntries(hermesHome, { platform, pathModule })
+  const shellgptNodeDirs = shellgptManagedNodePathEntries(shellgptHome, { platform, pathModule })
   const venvBin = venvRoot ? pathModule.join(venvRoot, platform === 'win32' ? 'Scripts' : 'bin') : null
   const saneEntries = platform === 'win32' ? [] : POSIX_SANE_PATH_ENTRIES
 
-  return appendUniquePathEntries([hermesNodeDirs, venvBin, currentPath, saneEntries], { delimiter })
+  return appendUniquePathEntries([shellgptNodeDirs, venvBin, currentPath, saneEntries], { delimiter })
 }
 
-function resolveHermesHomePath(hermesHome, { pathModule, homedir = os.homedir() }: any) {
+function resolveShellGPTHomePath(shellgptHome, { pathModule, homedir = os.homedir() }: any) {
   // fish (and any shell when the value is quoted) hands a literal `~` through; path.resolve()
-  // would pin it under cwd and the Python backend inherits that absolute path via HERMES_HOME.
-  let raw = String(hermesHome)
+  // would pin it under cwd and the Python backend inherits that absolute path via SHELLGPT_HOME.
+  let raw = String(shellgptHome)
 
   if (raw === '~' || raw.startsWith('~/') || (pathModule === path.win32 && raw.startsWith('~\\'))) {
     raw = pathModule.join(homedir, raw.slice(1))
@@ -121,15 +121,15 @@ function isProfileHome(resolved, pathModule) {
   return pathModule.basename(pathModule.dirname(resolved)).toLowerCase() === 'profiles'
 }
 
-function normalizeHermesHomeRoot(
-  hermesHome,
+function normalizeShellGPTHomeRoot(
+  shellgptHome,
   { pathModule = pathModuleForPlatform(process.platform), homedir = os.homedir() }: any = {}
 ) {
-  if (!hermesHome) {
-    return hermesHome
+  if (!shellgptHome) {
+    return shellgptHome
   }
 
-  const resolved = resolveHermesHomePath(hermesHome, { pathModule, homedir })
+  const resolved = resolveShellGPTHomePath(shellgptHome, { pathModule, homedir })
 
   return isProfileHome(resolved, pathModule) ? pathModule.dirname(pathModule.dirname(resolved)) : resolved
 }
@@ -138,7 +138,7 @@ function normalizeHermesHomeRoot(
 const PROCESS_ENV_NAMES = new Set([
   'APPDATA',
   'COMSPEC',
-  'HERMES_HOME',
+  'SHELLGPT_HOME',
   'HOME',
   'LANG',
   'LC_ALL',
@@ -174,9 +174,9 @@ function readTextOrEmpty(fsModule, file) {
 }
 
 /**
- * Parent env for a local `hermes serve` child of `profile` (#68367).
+ * Parent env for a local `shellgpt serve` child of `profile` (#68367).
  *
- * `hermes desktop` loads its launch profile's `.env`/`.op.env` into os.environ
+ * `shellgpt desktop` loads its launch profile's `.env`/`.op.env` into os.environ
  * before exec'ing Electron, so `process.env` carries that profile's platform
  * credentials. A child for ANOTHER profile would inherit them ahead of its own
  * dotenv (`.op.env` is even skipped once OP_SERVICE_ACCOUNT_TOKEN is set) and,
@@ -187,10 +187,10 @@ function readTextOrEmpty(fsModule, file) {
  * declared pass through everywhere.
  *
  * `profile` null/empty means no `--profile` flag: the child follows the sticky
- * `active_profile` like a bare `hermes serve` (`_apply_profile_override`).
+ * `active_profile` like a bare `shellgpt serve` (`_apply_profile_override`).
  */
 function profileBackendParentEnv({
-  hermesHome,
+  shellgptHome,
   profile,
   currentEnv = process.env,
   platform = process.platform,
@@ -199,15 +199,15 @@ function profileBackendParentEnv({
 }: any = {}) {
   const env = { ...(currentEnv || {}) }
 
-  if (!hermesHome) {
+  if (!shellgptHome) {
     return env
   }
 
   const fold = platform === 'win32' ? (value: string) => value.toUpperCase() : (value: string) => value
-  const inheritedHome = currentEnv?.HERMES_HOME ? resolveHermesHomePath(currentEnv.HERMES_HOME, { pathModule }) : null
-  const launchHome = inheritedHome && isProfileHome(inheritedHome, pathModule) ? inheritedHome : hermesHome
-  const name = profile || readTextOrEmpty(fsModule, pathModule.join(hermesHome, 'active_profile')).trim()
-  const targetHome = !name || name === 'default' ? hermesHome : pathModule.join(hermesHome, 'profiles', name)
+  const inheritedHome = currentEnv?.SHELLGPT_HOME ? resolveShellGPTHomePath(currentEnv.SHELLGPT_HOME, { pathModule }) : null
+  const launchHome = inheritedHome && isProfileHome(inheritedHome, pathModule) ? inheritedHome : shellgptHome
+  const name = profile || readTextOrEmpty(fsModule, pathModule.join(shellgptHome, 'active_profile')).trim()
+  const targetHome = !name || name === 'default' ? shellgptHome : pathModule.join(shellgptHome, 'profiles', name)
 
   if (fold(pathModule.resolve(launchHome)) === fold(pathModule.resolve(targetHome))) {
     return env
@@ -230,7 +230,7 @@ function profileBackendParentEnv({
 }
 
 function buildDesktopBackendEnv({
-  hermesHome,
+  shellgptHome,
   pythonPathEntries = [],
   venvRoot,
   currentEnv = process.env,
@@ -245,13 +245,13 @@ function buildDesktopBackendEnv({
     PYTHONPATH: appendUniquePathEntries([...pythonPathEntries, currentPythonPath], { delimiter }),
     // Force PEP 540 UTF-8 mode in the spawned Python backend so its stdio and
     // subprocess defaults are UTF-8 even on non-UTF-8 Windows locales (GBK,
-    // cp1252, ...). hermes_bootstrap sets this inside the child too, but only
+    // cp1252, ...). shellgpt_bootstrap sets this inside the child too, but only
     // after import — anything emitted earlier (interpreter startup errors,
     // pre-bootstrap tracebacks) still decodes with the locale default without
     // this. User's explicit setting wins. Re-port of PR #56499 (echoriver89).
     PYTHONUTF8: currentEnv?.PYTHONUTF8 ?? '1',
     [key]: buildDesktopBackendPath({
-      hermesHome,
+      shellgptHome,
       venvRoot,
       currentPath: currentPathValue(currentEnv, platform),
       platform,
@@ -265,8 +265,8 @@ export {
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
   delimiterForPlatform,
-  hermesManagedNodePathEntries,
-  normalizeHermesHomeRoot,
+  shellgptManagedNodePathEntries,
+  normalizeShellGPTHomeRoot,
   pathEnvKey,
   POSIX_SANE_PATH_ENTRIES,
   profileBackendParentEnv

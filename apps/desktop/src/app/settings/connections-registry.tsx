@@ -57,7 +57,7 @@ interface EditorState {
   token: string
   host: string
   keyPath: string
-  remoteHermesPath: string
+  remoteShellGPTPath: string
   // ssh remote profile, hydrated on edit so the duplicate key matches the
   // main-process one (user@host:port + profile); the editor doesn't expose it.
   remoteProfile: string
@@ -70,7 +70,7 @@ interface EditorState {
 }
 
 /**
- * The auth mode the editor saves. A Hermes Cloud gateway signs in through its
+ * The auth mode the editor saves. A ShellGPT Cloud gateway signs in through its
  * OAuth session and never keeps a pasted token (the main process drops one),
  * so cloud is always oauth whatever the shared editor state last held for a
  * remote; token auth left a hand-registered cloud entry with no credential
@@ -95,7 +95,7 @@ function editorFromConnection(conn: DesktopRegistryConnection): EditorState {
     // would silently resurrect the old values.
     host: conn.host ? `${conn.user ? `${conn.user}@` : ''}${conn.host}${conn.port ? `:${conn.port}` : ''}` : '',
     keyPath: conn.keyPath || '',
-    remoteHermesPath: conn.remoteHermesPath || '',
+    remoteShellGPTPath: conn.remoteShellGPTPath || '',
     remoteProfile: conn.remoteProfile || '',
     headers: (conn.headerNames || []).map(name => ({ name, stored: true, value: '' }))
   }
@@ -111,7 +111,7 @@ function emptyEditor(kind: DesktopConnectionKind): EditorState {
     token: '',
     host: '',
     keyPath: '',
-    remoteHermesPath: '',
+    remoteShellGPTPath: '',
     remoteProfile: '',
     headers: []
   }
@@ -245,7 +245,7 @@ function scrollableAncestor(element: HTMLElement): HTMLElement | null {
 
 /**
  * The connections registry section of Settings → Gateways: manage the named
- * agent sources (local runtime + any number of remote gateways / Hermes Cloud
+ * agent sources (local runtime + any number of remote gateways / ShellGPT Cloud
  * instances / SSH hosts). Storage-level management — the active/primary
  * switchover UX is the connection-mode controls above this section.
  */
@@ -279,7 +279,7 @@ export function ConnectionsRegistrySection() {
   const [oauthConnected, setOauthConnected] = useState(false)
   const probeSeq = useRef(0)
 
-  const bridge = window.hermesDesktop?.connections
+  const bridge = window.shellgptDesktop?.connections
 
   const hasLocal = Boolean(registry?.connections.some(c => c.kind === 'local'))
 
@@ -297,7 +297,7 @@ export function ConnectionsRegistrySection() {
   // URL doesn't fire a request per keystroke. Best-effort: a failed probe just
   // leaves the generic provider label, it never blocks signing in.
   useEffect(() => {
-    if (!editorWantsOauth || !editorUrl || !window.hermesDesktop?.probeConnectionConfig) {
+    if (!editorWantsOauth || !editorUrl || !window.shellgptDesktop?.probeConnectionConfig) {
       setAuthProbe(null)
 
       return
@@ -310,7 +310,7 @@ export function ConnectionsRegistrySection() {
     let cancelled = false
 
     const timer = setTimeout(() => {
-      window.hermesDesktop
+      window.shellgptDesktop
         .probeConnectionConfig(editorUrl)
         .then(result => {
           if (!cancelled && seq === probeSeq.current) {
@@ -352,7 +352,7 @@ export function ConnectionsRegistrySection() {
     setSigningIn(true)
 
     try {
-      const result = await window.hermesDesktop.oauthLoginConnectionConfig(editorUrl)
+      const result = await window.shellgptDesktop.oauthLoginConnectionConfig(editorUrl)
 
       setOauthConnected(Boolean(result.connected))
 
@@ -467,7 +467,7 @@ export function ConnectionsRegistrySection() {
           // of truth — never send separate user/port (see editorFromConnection).
           payload.host = editor.host
           payload.keyPath = editor.keyPath || undefined
-          payload.remoteHermesPath = editor.remoteHermesPath.trim()
+          payload.remoteShellGPTPath = editor.remoteShellGPTPath.trim()
         }
 
         const result = await bridge.save(payload)
@@ -585,7 +585,7 @@ export function ConnectionsRegistrySection() {
     [bridge, s.testFailed, s.testOk]
   )
 
-  // Fan out `hermes update` to every eligible source; per-connection results
+  // Fan out `shellgpt update` to every eligible source; per-connection results
   // land as individual toasts so one dead box doesn't hide the others.
   const updateAll = useCallback(async () => {
     if (!bridge?.updateAll) {
@@ -966,13 +966,13 @@ export function ConnectionsRegistrySection() {
               <ListRow
                 action={
                   <Input
-                    onChange={e => setEditor({ ...editor, remoteHermesPath: e.target.value })}
-                    placeholder={t.settings.gateway.sshHermesPathPlaceholder}
-                    value={editor.remoteHermesPath}
+                    onChange={e => setEditor({ ...editor, remoteShellGPTPath: e.target.value })}
+                    placeholder={t.settings.gateway.sshShellGPTPathPlaceholder}
+                    value={editor.remoteShellGPTPath}
                   />
                 }
-                description={t.settings.gateway.sshHermesPathDesc}
-                title={t.settings.gateway.sshHermesPathTitle}
+                description={t.settings.gateway.sshShellGPTPathDesc}
+                title={t.settings.gateway.sshShellGPTPathTitle}
               />
             </>
           )}

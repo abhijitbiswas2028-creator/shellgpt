@@ -30,8 +30,8 @@ _LOCK = threading.Lock()
 
 
 def _store_path() -> str:
-    from hermes_constants import get_hermes_home  # honors the active profile override
-    return os.path.join(str(get_hermes_home()), "state", "rich_sent_index.json")
+    from shellgpt_constants import get_shellgpt_home  # honors the active profile override
+    return os.path.join(str(get_shellgpt_home()), "state", "rich_sent_index.json")
 
 
 def _load(path: str) -> dict:

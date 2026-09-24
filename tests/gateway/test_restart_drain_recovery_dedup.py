@@ -22,7 +22,7 @@ from __future__ import annotations
 import types
 
 
-from hermes_state import SessionDB
+from shellgpt_state import SessionDB
 
 
 def _make_db(tmp_path) -> SessionDB:

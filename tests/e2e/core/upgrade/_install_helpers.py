@@ -7,7 +7,7 @@ of that this module stages what a real user machine looks like to the installer 
   the official clone URLs are rewritten to by the sandbox's own ``~/.gitconfig``, plus a ``git``
   wrapper that reports the official URL for ``remote get-url origin`` (``insteadOf`` would
   otherwise expose the local path and send the updater down the fork path);
-* a managed ``$HERMES_HOME/bin/uv`` pointing at the host's uv (warm cache, no download);
+* a managed ``$SHELLGPT_HOME/bin/uv`` pointing at the host's uv (warm cache, no download);
 * ``TMPDIR`` inside the sandbox root (the host's is not writable in the sandbox).
 """
 
@@ -24,14 +24,14 @@ from pathlib import Path
 
 from tests.e2e.core.upgrade import _helpers as H
 
-OFFICIAL_HTTPS = "https://github.com/NousResearch/hermes-agent.git"
-OFFICIAL_SSH = "git@github.com:NousResearch/hermes-agent.git"
+OFFICIAL_HTTPS = "https://github.com/NousResearch/shellgpt-agent.git"
+OFFICIAL_SSH = "git@github.com:NousResearch/shellgpt-agent.git"
 TRACEBACK = "Traceback (most recent call last)"
 FAKE_KEY = "sk-fake-e2e-install-update"
 
 
 def real_uv() -> str | None:
-    cand = shutil.which("uv") or str(H.REAL_HOME / ".hermes" / "bin" / "uv")
+    cand = shutil.which("uv") or str(H.REAL_HOME / ".shellgpt" / "bin" / "uv")
     return cand if cand and Path(cand).exists() else None
 
 
@@ -44,9 +44,9 @@ def git(*args: str, cwd: Path, check: bool = True, env: dict | None = None) -> s
 
 
 def head_sha() -> str:
-    """The commit the sandbox installs: HEAD, or HERMES_E2E_INSTALL_REF (a patched commit object,
+    """The commit the sandbox installs: HEAD, or SHELLGPT_E2E_INSTALL_REF (a patched commit object,
     used to prove a scenario red against a sabotaged install without moving the branch)."""
-    return git("rev-parse", os.environ.get("HERMES_E2E_INSTALL_REF") or "HEAD", cwd=H.WORKTREE)
+    return git("rev-parse", os.environ.get("SHELLGPT_E2E_INSTALL_REF") or "HEAD", cwd=H.WORKTREE)
 
 
 def make_origin(root: Path, ref: str) -> Path:
@@ -88,38 +88,38 @@ class Sandbox:
         return Path(self.env["HOME"])
 
     @property
-    def hermes_home(self) -> Path:
-        return Path(self.env["HERMES_HOME"])
+    def shellgpt_home(self) -> Path:
+        return Path(self.env["SHELLGPT_HOME"])
 
     @property
     def checkout(self) -> Path:
-        return self.hermes_home / "hermes-agent"
+        return self.shellgpt_home / "shellgpt-agent"
 
     @property
-    def hermes(self) -> str:
+    def shellgpt(self) -> str:
         """The command the installer put on PATH, as a user's shell resolves it."""
-        return str(self.home / ".local" / "bin" / "hermes")
+        return str(self.home / ".local" / "bin" / "shellgpt")
 
     def run(self, argv: list[str], *, timeout: float = 600, cwd: Path | None = None,
             input: str | None = None) -> subprocess.CompletedProcess:
         return H.run(argv, env=self.env, cwd=cwd or self.root, writable=[self.root], timeout=timeout, input=input)
 
     def cli(self, *args: str, timeout: float = 600) -> subprocess.CompletedProcess:
-        return self.run([self.hermes, *args], timeout=timeout)
+        return self.run([self.shellgpt, *args], timeout=timeout)
 
 
 def new_sandbox(root: Path, origin: Path | None = None, *, pythonpath: Path | None = None) -> Sandbox:
-    """Empty fake HOME: no ``~/.hermes`` at all, only what a fresh machine with uv/git/node has."""
+    """Empty fake HOME: no ``~/.shellgpt`` at all, only what a fresh machine with uv/git/node has."""
     root.mkdir(parents=True, exist_ok=True)
     wrap = root / "wrap"
     env = H.isolated_env(root, extra_path=[wrap], pythonpath=pythonpath)
     home = Path(env["HOME"])
-    shutil.rmtree(home / ".hermes")
+    shutil.rmtree(home / ".shellgpt")
     (root / "tmp").mkdir(exist_ok=True)
     env["TMPDIR"] = str(root / "tmp")
     env["SHELL"] = "/bin/bash"
     # A fresh machine: ~/.local/bin is NOT on PATH yet; the installer must wire it up.
-    managed = home / ".hermes" / "bin"
+    managed = home / ".shellgpt" / "bin"
     managed.mkdir(parents=True)
     uv = managed / "uv"
     uv.write_text(f'#!/bin/sh\nif [ "$1" = self ]; then exit 0; fi\nexec "{real_uv()}" "$@"\n', encoding="utf-8")
@@ -154,7 +154,7 @@ def provider_config(base_url: str, version: int | None, extra: str = "") -> str:
     """A hand-edited user config: comments, a key HEAD does not know, and the fake provider."""
     ver = f"_config_version: {version}\n" if version is not None else ""
     return (
-        "# My Hermes config. Hand-edited; comments must survive.\n"
+        "# My ShellGPT config. Hand-edited; comments must survive.\n"
         "model:\n"
         "  provider: custom\n"
         f"  base_url: {base_url}  # local fake provider\n"
@@ -162,7 +162,7 @@ def provider_config(base_url: str, version: int | None, extra: str = "") -> str:
         "  context_length: 128000\n"
         "agent:\n"
         "  api_max_retries: 1   # keep it snappy\n"
-        "# A key this Hermes version does not know about (from a plugin or a newer release).\n"
+        "# A key this ShellGPT version does not know about (from a plugin or a newer release).\n"
         "my_future_section:\n"
         "  nested_flag: true\n"
         "  words: \"unicode é 漢字 and a # that is not a comment\"\n"

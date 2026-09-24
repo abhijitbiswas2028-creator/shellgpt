@@ -8,11 +8,11 @@ import threading
 
 import pytest
 
-from hermes_cli.dashboard_auth import ws_tickets
+from shellgpt_cli.dashboard_auth import ws_tickets
 
 
 def test_install_worker_keeps_the_requested_profile_scope(tmp_path, monkeypatch):
-    from hermes_constants import get_hermes_home
+    from shellgpt_constants import get_shellgpt_home
     from tools.bot_desktop import install, runtime
     import tui_gateway.server as server
 
@@ -25,7 +25,7 @@ def test_install_worker_keeps_the_requested_profile_scope(tmp_path, monkeypatch)
     done = threading.Event()
 
     def fake_install(*, ask_password, on_line, timeout_seconds=900.0, claimed=False):
-        seen["home"] = str(get_hermes_home())
+        seen["home"] = str(get_shellgpt_home())
         done.set()
         return 0
 

@@ -16,16 +16,16 @@ from concurrent.futures import ThreadPoolExecutor
 
 ROOT = sys.argv[1]
 sys.path.insert(0, ROOT)
-os.environ["HERMES_HOME"] = tempfile.mkdtemp(prefix="hermes-e2e-55712-")
-for m in [k for k in sys.modules if k.startswith(("hermes", "tools", "plugins"))]:
+os.environ["SHELLGPT_HOME"] = tempfile.mkdtemp(prefix="shellgpt-e2e-55712-")
+for m in [k for k in sys.modules if k.startswith(("shellgpt", "tools", "plugins"))]:
     del sys.modules[m]
 
 import uvicorn  # noqa: E402
 
-from hermes_cli import web_server  # noqa: E402
-from hermes_cli.dashboard_auth import register_provider  # noqa: E402
-from hermes_cli.dashboard_auth.base import RefreshExpiredError, Session  # noqa: E402
-from tests.hermes_cli.conftest_dashboard_auth import StubAuthProvider  # noqa: E402
+from shellgpt_cli import web_server  # noqa: E402
+from shellgpt_cli.dashboard_auth import register_provider  # noqa: E402
+from shellgpt_cli.dashboard_auth.base import RefreshExpiredError, Session  # noqa: E402
+from tests.shellgpt_cli.conftest_dashboard_auth import StubAuthProvider  # noqa: E402
 
 
 class SlowRotatingIdP(StubAuthProvider):
@@ -93,7 +93,7 @@ results["native_burst"] = {"codes": codes, "provider_calls": idp.calls}
 
 # (2) cookie gate path: 4 concurrent gated requests with an expired AT + one stale RT
 idp.calls = 0
-ck = "hermes_session_at=expired-at; hermes_session_rt=cookie-stale; hermes_session_provider=stub"
+ck = "shellgpt_session_at=expired-at; shellgpt_session_rt=cookie-stale; shellgpt_session_provider=stub"
 with ThreadPoolExecutor(4) as pool:
     codes = sorted(pool.map(lambda _: http("/api/auth/me", headers={"cookie": ck}), range(4)))
 results["cookie_burst"] = {"codes": codes, "provider_calls": idp.calls}

@@ -12,7 +12,7 @@ the host platform.  We also keep a live Winsock smoke test that only runs
 on a real Windows host.
 
 Background on the companion Windows bug: the sandbox writes
-``hermes_tools.py`` and ``script.py`` into a temp dir, and those files
+``shellgpt_tools.py`` and ``script.py`` into a temp dir, and those files
 must be written as UTF-8 on every platform — the generated stub contains
 em-dash/en-dash characters in docstrings, and the default ``open(path, "w")``
 on Windows uses the system locale (cp1252 typically), corrupting those
@@ -238,9 +238,9 @@ class TestWindowsSocketSmokeTest:
 # ---------------------------------------------------------------------------
 
 class TestPosixEquivalence:
-    """POSIX-mode scrubbing: safe prefixes and the HERMES_* operational
+    """POSIX-mode scrubbing: safe prefixes and the SHELLGPT_* operational
     allowlist pass; secret-looking names (incl. DSN/WEBHOOK) and every other
-    HERMES_* var are dropped (#27303); Windows mode only ever adds essentials."""
+    SHELLGPT_* var are dropped (#27303); Windows mode only ever adds essentials."""
 
     _POSIX_SYNTHETIC_ENV = {
         # Safe-prefix matches
@@ -258,13 +258,13 @@ class TestPosixEquivalence:
         "PYTHONPATH": "/opt/lib",
         "VIRTUAL_ENV": "/home/alice/.venv",
         "CONDA_PREFIX": "/opt/conda",
-        # HERMES_* handling (#27303): only the operational allowlist passes;
-        # every other HERMES_* is dropped (the broad prefix was removed).
-        "HERMES_HOME": "/home/alice/.hermes",        # allowlisted → kept
-        "HERMES_PROFILE": "default",                 # allowlisted → kept
-        "HERMES_INTERACTIVE": "1",                   # not allowlisted → dropped
-        "HERMES_BASE_URL": "https://api.internal",   # not allowlisted → dropped
-        "HERMES_KANBAN_DB": "postgres://u:p@h/db",   # not allowlisted → dropped
+        # SHELLGPT_* handling (#27303): only the operational allowlist passes;
+        # every other SHELLGPT_* is dropped (the broad prefix was removed).
+        "SHELLGPT_HOME": "/home/alice/.shellgpt",        # allowlisted → kept
+        "SHELLGPT_PROFILE": "default",                 # allowlisted → kept
+        "SHELLGPT_INTERACTIVE": "1",                   # not allowlisted → dropped
+        "SHELLGPT_BASE_URL": "https://api.internal",   # not allowlisted → dropped
+        "SHELLGPT_KANBAN_DB": "postgres://u:p@h/db",   # not allowlisted → dropped
         # Secret-substring blocks
         "OPENAI_API_KEY": "sk-xxx",
         "GITHUB_TOKEN": "ghp_xxx",
@@ -306,11 +306,11 @@ class TestPosixEquivalence:
                                     is_passthrough=_no_passthrough,
                                     is_windows=False)
         for kept in ("PATH", "HOME", "LANG", "LC_CTYPE", "XDG_RUNTIME_DIR",
-                     "VIRTUAL_ENV", "HERMES_HOME", "HERMES_PROFILE"):
+                     "VIRTUAL_ENV", "SHELLGPT_HOME", "SHELLGPT_PROFILE"):
             assert scrubbed.get(kept) == self._POSIX_SYNTHETIC_ENV[kept], kept
         for dropped in ("OPENAI_API_KEY", "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY",
                         "MY_PASSWORD", "SENTRY_DSN", "SLACK_WEBHOOK", "TENOR_API_KEY",
-                        "HERMES_INTERACTIVE", "HERMES_BASE_URL", "HERMES_KANBAN_DB",
+                        "SHELLGPT_INTERACTIVE", "SHELLGPT_BASE_URL", "SHELLGPT_KANBAN_DB",
                         "RANDOM_UNKNOWN", "SSH_AUTH_SOCK"):
             assert dropped not in scrubbed, dropped
 
@@ -344,7 +344,7 @@ class TestPosixEquivalence:
 # ---------------------------------------------------------------------------
 #
 # The third Windows-specific sandbox bug: after the UTF-8 file-write fix
-# let the child import hermes_tools, a user script that printed non-ASCII
+# let the child import shellgpt_tools, a user script that printed non-ASCII
 # to stdout still crashed with:
 #
 #     UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'
@@ -408,7 +408,7 @@ def _configured_timezone_child_env():
     return code_execution_env._build_child_env(
         rpc_endpoint="socket",
         rpc_token="token",
-        tmpdir="/tmp/hermes-code-execution-test",
+        tmpdir="/tmp/shellgpt-code-execution-test",
         child_python=sys.executable,
     )
 
@@ -423,7 +423,7 @@ def test_windows_live_child_offset_matches_os_zone_when_timezone_is_configured(m
     import datetime
     import json
 
-    monkeypatch.setattr("hermes_time.get_timezone_name", lambda: "America/Los_Angeles")
+    monkeypatch.setattr("shellgpt_time.get_timezone_name", lambda: "America/Los_Angeles")
     child_env = _configured_timezone_child_env()
     result = subprocess.run(
         [sys.executable, "-c",

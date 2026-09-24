@@ -1,4 +1,4 @@
-function Test-HermesUpdateShouldRetry {
+function Test-ShellGPTUpdateShouldRetry {
     param(
         [int]$ExitCode,
         [string]$InstallRoot

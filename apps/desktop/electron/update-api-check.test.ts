@@ -76,11 +76,11 @@ test('compare payload maps to the behind count and a newest-first commit list; m
   assert.equal(parseCompare('nope'), null)
 
   // Forks and SSH forms hit the API for their own repo; non-GitHub origins don't.
-  assert.equal(githubRepoSlug('git@github.com:Someone/hermes-agent.git'), 'someone/hermes-agent')
+  assert.equal(githubRepoSlug('git@github.com:Someone/shellgpt-agent.git'), 'someone/shellgpt-agent')
   assert.equal(githubRepoSlug('https://gitlab.example/x/y.git'), null)
   assert.equal(
-    branchTipApiUrl('nousresearch/hermes-agent', 'bb/gui'),
-    'https://api.github.com/repos/nousresearch/hermes-agent/commits/bb%2Fgui'
+    branchTipApiUrl('nousresearch/shellgpt-agent', 'bb/gui'),
+    'https://api.github.com/repos/nousresearch/shellgpt-agent/commits/bb%2Fgui'
   )
 })
 

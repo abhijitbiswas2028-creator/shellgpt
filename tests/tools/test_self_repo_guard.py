@@ -11,7 +11,7 @@ from tools.self_repo_guard import (
 
 @pytest.fixture
 def repo(tmp_path):
-    root = tmp_path / "hermes-agent"
+    root = tmp_path / "shellgpt-agent"
     root.mkdir()
     subprocess.run(["git", "init", "-q", str(root)], check=True)
     (root / "agent").mkdir()
@@ -61,7 +61,7 @@ class TestBlocksMutationsInSourceRepo:
         assert hit is True
 
     def test_relative_cd_into_repo(self, repo):
-        hit, _ = _detect("cd hermes-agent && git pull", repo.parent, repo)
+        hit, _ = _detect("cd shellgpt-agent && git pull", repo.parent, repo)
         assert hit is True
 
     def test_mutation_after_safe_command(self, repo):
@@ -187,7 +187,7 @@ class TestBlocksMutationsInSourceRepo:
 
     def test_tilde_dash_c_path(self, repo, monkeypatch, tmp_path):
         monkeypatch.setenv("HOME", str(repo.parent))
-        hit, _ = _detect("git -C ~/hermes-agent checkout main", tmp_path, repo)
+        hit, _ = _detect("git -C ~/shellgpt-agent checkout main", tmp_path, repo)
         assert hit is True
 
 
@@ -408,8 +408,8 @@ class TestBlockMessageGuidance:
 
 
 
-    def test_scratch_hint_honors_hermes_home(self, repo, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", "/custom/hermes-home")
+    def test_scratch_hint_honors_shellgpt_home(self, repo, monkeypatch):
+        monkeypatch.setenv("SHELLGPT_HOME", "/custom/shellgpt-home")
         hit, msg = _detect("git rebase origin/main", repo, repo)
         assert hit is True
-        assert "/custom/hermes-home/scratch" in msg
+        assert "/custom/shellgpt-home/scratch" in msg

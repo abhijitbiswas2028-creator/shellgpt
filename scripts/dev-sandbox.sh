@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
-# Run a Hermes instance in an isolated sandbox — separate HERMES_HOME,
+# Run a ShellGPT instance in an isolated sandbox — separate SHELLGPT_HOME,
 # separate Electron userData, and a distinct Desktop app name so it doesn't compete
 # with your main desktop instance's single-instance lock.
 #
 # By default the sandbox is throwaway: a temp dir is created and removed on
 # exit. Use --persistent to keep the sandbox across restarts (stored under
-# .hermes-sandbox/ in the worktree git root).
+# .shellgpt-sandbox/ in the worktree git root).
 #
 # Usage:
-#   scripts/dev-sandbox.sh python -m hermes_cli.main
-#   scripts/dev-sandbox.sh hermes desktop
+#   scripts/dev-sandbox.sh python -m shellgpt_cli.main
+#   scripts/dev-sandbox.sh shellgpt desktop
 #   scripts/dev-sandbox.sh electron .
 #   scripts/dev-sandbox.sh -- npm run dev   # from apps/desktop/
-#   scripts/dev-sandbox.sh --persistent hermes desktop
+#   scripts/dev-sandbox.sh --persistent shellgpt desktop
 #   scripts/dev-sandbox.sh --persistent -- npm run dev
 #
-# Seed the sandbox HERMES_HOME from an existing directory (e.g. your main
-# ~/.hermes) so config, sessions, skills, etc. are pre-populated:
-#   scripts/dev-sandbox.sh --from ~/.hermes hermes desktop
+# Seed the sandbox SHELLGPT_HOME from an existing directory (e.g. your main
+# ~/.shellgpt) so config, sessions, skills, etc. are pre-populated:
+#   scripts/dev-sandbox.sh --from ~/.shellgpt shellgpt desktop
 #
-# Override the app name (default: HermesSandbox):
-#   HERMES_DEV_SANDBOX_NAME=Staging scripts/dev-sandbox.sh hermes desktop
+# Override the app name (default: ShellGPTSandbox):
+#   SHELLGPT_DEV_SANDBOX_NAME=Staging scripts/dev-sandbox.sh shellgpt desktop
 #
-# Override the persistent sandbox dir name (default: .hermes-sandbox):
-#   HERMES_DEV_SANDBOX_DIR=.staging-sandbox scripts/dev-sandbox.sh --persistent hermes desktop
+# Override the persistent sandbox dir name (default: .shellgpt-sandbox):
+#   SHELLGPT_DEV_SANDBOX_DIR=.staging-sandbox scripts/dev-sandbox.sh --persistent shellgpt desktop
 
 set -euo pipefail
 
@@ -33,27 +33,27 @@ print_help() {
   cat <<'EOF'
 Usage: dev-sandbox.sh [--persistent] [--from DIR] [--] <command...>
 
-Run a Hermes instance in an isolated sandbox.
+Run a ShellGPT instance in an isolated sandbox.
 
 Options:
   --persistent    Keep the sandbox dir across restarts (under the worktree
-                  git root, in .hermes-sandbox/). Without this flag the
+                  git root, in .shellgpt-sandbox/). Without this flag the
                   sandbox is a temp dir that is removed on exit.
-  --from DIR      Copy DIR into the sandbox HERMES_HOME as the starting
+  --from DIR      Copy DIR into the sandbox SHELLGPT_HOME as the starting
                   point (config, sessions, skills, etc.).
-                  Ignored if the sandbox HERMES_HOME already has content
+                  Ignored if the sandbox SHELLGPT_HOME already has content
                   (e.g. reusing a --persistent sandbox) to avoid clobbering.
-  --delete        Delete the existing persistent sandbox in .hermes-sandbox.
+  --delete        Delete the existing persistent sandbox in .shellgpt-sandbox.
   -h, --help      Show this help message.
 
 Environment:
-  HERMES_DEV_SANDBOX_NAME  Override the app name (default: HermesSandbox)
-  HERMES_DEV_SANDBOX_DIR   Override the persistent dir name (default: .hermes-sandbox)
+  SHELLGPT_DEV_SANDBOX_NAME  Override the app name (default: ShellGPTSandbox)
+  SHELLGPT_DEV_SANDBOX_DIR   Override the persistent dir name (default: .shellgpt-sandbox)
 
 Examples:
-  dev-sandbox.sh hermes desktop
-  dev-sandbox.sh --persistent hermes desktop
-  dev-sandbox.sh --from ~/.hermes hermes desktop
+  dev-sandbox.sh shellgpt desktop
+  dev-sandbox.sh --persistent shellgpt desktop
+  dev-sandbox.sh --from ~/.shellgpt shellgpt desktop
   dev-sandbox.sh -- npm run dev
 EOF
 }
@@ -117,7 +117,7 @@ if [ "$#" -eq 0 ]; then
 fi
 
 
-SANDBOX_DIR_NAME="${HERMES_DEV_SANDBOX_DIR:-.hermes-sandbox}"
+SANDBOX_DIR_NAME="${SHELLGPT_DEV_SANDBOX_DIR:-.shellgpt-sandbox}"
 GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR/..")"
 GIT_ROOT="$(cd "$GIT_ROOT" && pwd)"
 PERSISTENT_SANDBOX_ROOT="$GIT_ROOT/$SANDBOX_DIR_NAME"
@@ -148,36 +148,36 @@ WORKTREE_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR/
 WORKTREE_ROOT="$(cd "$WORKTREE_ROOT" && pwd)"
 WORKTREE_HASH="$(printf '%s' "$WORKTREE_ROOT" | cksum | cut -d' ' -f1)"
 WORKTREE_NAME="$(basename "$WORKTREE_ROOT")"
-DEFAULT_SANDBOX_NAME="HermesSandbox-${WORKTREE_NAME}-${WORKTREE_HASH}"
+DEFAULT_SANDBOX_NAME="ShellGPTSandbox-${WORKTREE_NAME}-${WORKTREE_HASH}"
 
-SANDBOX_NAME="${HERMES_DEV_SANDBOX_NAME:-$DEFAULT_SANDBOX_NAME}"
+SANDBOX_NAME="${SHELLGPT_DEV_SANDBOX_NAME:-$DEFAULT_SANDBOX_NAME}"
 
 if [ "$PERSISTENT" = true ]; then
   SANDBOX_ROOT="$PERSISTENT_SANDBOX_ROOT"
 else
-  SANDBOX_ROOT="$(mktemp -d -t hermes-sandbox.XXXXXX)"
+  SANDBOX_ROOT="$(mktemp -d -t shellgpt-sandbox.XXXXXX)"
 fi
 
-export HERMES_HOME="$SANDBOX_ROOT/hermes-home"
-export HERMES_DESKTOP_USER_DATA_DIR="$SANDBOX_ROOT/user-data"
-export HERMES_DESKTOP_APP_NAME="$SANDBOX_NAME"
+export SHELLGPT_HOME="$SANDBOX_ROOT/shellgpt-home"
+export SHELLGPT_DESKTOP_USER_DATA_DIR="$SANDBOX_ROOT/user-data"
+export SHELLGPT_DESKTOP_APP_NAME="$SANDBOX_NAME"
 
-mkdir -p "$HERMES_HOME" "$HERMES_DESKTOP_USER_DATA_DIR"
+mkdir -p "$SHELLGPT_HOME" "$SHELLGPT_DESKTOP_USER_DATA_DIR"
 
 if [ -n "$SEED_DIR" ]; then
-  # Only seed when the sandbox HERMES_HOME is empty — avoids clobbering an
+  # Only seed when the sandbox SHELLGPT_HOME is empty — avoids clobbering an
   # existing persistent sandbox on re-run.
-  if [ -z "$(ls -A "$HERMES_HOME" 2>/dev/null)" ]; then
-    echo "[sandbox] seeding HERMES_HOME from $SEED_DIR" >&2
-    cp -a "$SEED_DIR/." "$HERMES_HOME/"
+  if [ -z "$(ls -A "$SHELLGPT_HOME" 2>/dev/null)" ]; then
+    echo "[sandbox] seeding SHELLGPT_HOME from $SEED_DIR" >&2
+    cp -a "$SEED_DIR/." "$SHELLGPT_HOME/"
   else
-    echo "[sandbox] --from ignored: $HERMES_HOME already has content" >&2
+    echo "[sandbox] --from ignored: $SHELLGPT_HOME already has content" >&2
   fi
 fi
 
-echo "[sandbox] HERMES_HOME=$HERMES_HOME" >&2
-echo "[sandbox] userData=$HERMES_DESKTOP_USER_DATA_DIR" >&2
-echo "[sandbox] appName=$HERMES_DESKTOP_APP_NAME" >&2
+echo "[sandbox] SHELLGPT_HOME=$SHELLGPT_HOME" >&2
+echo "[sandbox] userData=$SHELLGPT_DESKTOP_USER_DATA_DIR" >&2
+echo "[sandbox] appName=$SHELLGPT_DESKTOP_APP_NAME" >&2
 if [ "$PERSISTENT" = true ]; then
   echo "[sandbox] persistent: $SANDBOX_ROOT" >&2
 else

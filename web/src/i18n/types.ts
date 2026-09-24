@@ -164,11 +164,11 @@ export interface Translations {
     starting: string;
     startedInBackground: string;
     stopped: string;
-    updateHermes: string;
-    updateHermesConfirmMessage?: string;
-    updateHermesConfirmNow?: string;
-    updateHermesConfirmTitle?: string;
-    updatingHermes: string;
+    updateShellGPT: string;
+    updateShellGPTConfirmMessage?: string;
+    updateShellGPTConfirmNow?: string;
+    updateShellGPTConfirmTitle?: string;
+    updatingShellGPT: string;
     waitingForOutput: string;
   };
 
@@ -629,7 +629,7 @@ export interface Translations {
     fontMono?: string;
   };
 
-  // ── Achievements plugin (plugins/hermes-achievements) ──
+  // ── Achievements plugin (plugins/shellgpt-achievements) ──
   achievements: {
     hero: {
       kicker: string;

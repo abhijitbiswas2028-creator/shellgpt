@@ -14,20 +14,20 @@ import gateway.run as gateway_run
 
 
 def _write_home(tmp_path: Path, sessions_cfg: dict, env_text: str = "") -> Path:
-    hermes_home = tmp_path / ".hermes"
-    hermes_home.mkdir()
-    (hermes_home / "config.yaml").write_text(
+    shellgpt_home = tmp_path / ".shellgpt"
+    shellgpt_home.mkdir()
+    (shellgpt_home / "config.yaml").write_text(
         yaml.safe_dump({"sessions": sessions_cfg}), encoding="utf-8"
     )
-    (hermes_home / ".env").write_text(env_text, encoding="utf-8")
-    return hermes_home
+    (shellgpt_home / ".env").write_text(env_text, encoding="utf-8")
+    return shellgpt_home
 
 
 def test_cjk_fts_bridged_from_config(tmp_path, monkeypatch):
     home = _write_home(tmp_path, {"cjk_fts": False})
-    monkeypatch.setattr(gateway_run, "_hermes_home", home)
-    monkeypatch.setenv("HERMES_CJK_FTS", "1")
+    monkeypatch.setattr(gateway_run, "_shellgpt_home", home)
+    monkeypatch.setenv("SHELLGPT_CJK_FTS", "1")
     gateway_run._reload_runtime_env_preserving_config_authority()
-    assert os.environ["HERMES_CJK_FTS"] == "False"
+    assert os.environ["SHELLGPT_CJK_FTS"] == "False"
 
 

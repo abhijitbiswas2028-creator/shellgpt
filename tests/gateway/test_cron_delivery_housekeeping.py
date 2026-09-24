@@ -70,7 +70,7 @@ def test_multiplex_housekeeping_scopes_primary_and_drains_each_profile(
     secondary_home = tmp_path / "secondary"
     calls = []
 
-    monkeypatch.setattr(gateway_run, "get_hermes_home", lambda: root_home)
+    monkeypatch.setattr(gateway_run, "get_shellgpt_home", lambda: root_home)
 
     monkeypatch.setattr(
         gateway_run,
@@ -175,7 +175,7 @@ def test_primary_drain_delivers_credentialless_satellite_queue_row_through_prima
 
     from cron import delivery_queue
     from gateway.config import Platform
-    from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+    from shellgpt_constants import reset_shellgpt_home_override, set_shellgpt_home_override
 
     root = tmp_path / "root"
     satellite_home = root / "profiles" / "satellite"
@@ -187,7 +187,7 @@ def test_primary_drain_delivers_credentialless_satellite_queue_row_through_prima
     # The satellite names its home channel but holds no token: block present, ``enabled`` False.
     (satellite_home / "config.yaml").write_text(
         yaml.safe_dump({"platforms": {"discord": {"home_channel": "C1"}}}), encoding="utf-8")
-    monkeypatch.setattr("hermes_constants.get_default_hermes_root", lambda: root)
+    monkeypatch.setattr("shellgpt_constants.get_default_shellgpt_root", lambda: root)
     monkeypatch.delenv("DISCORD_BOT_TOKEN", raising=False)
 
     sent, standalone = [], []
@@ -202,11 +202,11 @@ def test_primary_drain_delivers_credentialless_satellite_queue_row_through_prima
         return {"success": False, "error": "DISCORD_BOT_TOKEN is not set"}
 
     # The external worker: no adapters, queues under the OWNING (satellite) home.
-    token = set_hermes_home_override(str(satellite_home))
+    token = set_shellgpt_home_override(str(satellite_home))
     try:
         delivery_queue.enqueue("exec-1", {"id": "job1", "name": "probe", "deliver": "discord:C1"}, "hello")
     finally:
-        reset_hermes_home_override(token)
+        reset_shellgpt_home_override(token)
 
     loop = asyncio.new_event_loop()
     threading.Thread(target=loop.run_forever, daemon=True).start()
@@ -219,11 +219,11 @@ def test_primary_drain_delivers_credentialless_satellite_queue_row_through_prima
     finally:
         loop.call_soon_threadsafe(loop.stop)
 
-    token = set_hermes_home_override(str(satellite_home))
+    token = set_shellgpt_home_override(str(satellite_home))
     try:
         row = delivery_queue.get_status("exec-1")
     finally:
-        reset_hermes_home_override(token)
+        reset_shellgpt_home_override(token)
     assert row["status"] == "delivered", row
     assert sent == ["C1"] and standalone == []
 

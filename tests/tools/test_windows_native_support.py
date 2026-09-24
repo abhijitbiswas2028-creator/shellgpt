@@ -25,7 +25,7 @@ import pytest
 
 
 class TestConfigureWindowsStdio:
-    """``hermes_cli.stdio.configure_windows_stdio`` wiring.
+    """``shellgpt_cli.stdio.configure_windows_stdio`` wiring.
 
     The function must:
     - be a no-op on non-Windows
@@ -33,23 +33,23 @@ class TestConfigureWindowsStdio:
     - set PYTHONIOENCODING / PYTHONUTF8 without overriding explicit user settings
     - reconfigure sys.stdout/stderr/stdin to UTF-8 on Windows
     - flip the console code page to CP_UTF8 (65001) via ctypes
-    - respect HERMES_DISABLE_WINDOWS_UTF8 opt-out
+    - respect SHELLGPT_DISABLE_WINDOWS_UTF8 opt-out
     """
 
     @pytest.fixture(autouse=True)
     def _reset_configured(self, monkeypatch):
         """Reload the module before each test so the _CONFIGURED flag resets."""
         # Remove from sys.modules so import triggers a fresh load
-        sys.modules.pop("hermes_cli.stdio", None)
-        # Fresh import now; tests import from hermes_cli.stdio themselves,
+        sys.modules.pop("shellgpt_cli.stdio", None)
+        # Fresh import now; tests import from shellgpt_cli.stdio themselves,
         # but this guarantees the module they get is a brand-new copy.
-        import hermes_cli.stdio as _s
+        import shellgpt_cli.stdio as _s
         _s._CONFIGURED = False
         yield
-        sys.modules.pop("hermes_cli.stdio", None)
+        sys.modules.pop("shellgpt_cli.stdio", None)
 
     def test_no_op_on_posix(self, monkeypatch):
-        from hermes_cli import stdio
+        from shellgpt_cli import stdio
 
         monkeypatch.setattr(stdio, "is_windows", lambda: False)
         result = stdio.configure_windows_stdio()
@@ -59,7 +59,7 @@ class TestConfigureWindowsStdio:
 
     def test_reconfigure_stream_handles_missing_method(self, monkeypatch):
         """StringIO-like objects without .reconfigure() must not blow up."""
-        from hermes_cli import stdio
+        from shellgpt_cli import stdio
         import io
 
         buf = io.StringIO()
@@ -260,12 +260,12 @@ class TestTzdataDependencyDeclared:
 
 
 class TestSubprocessCompatHelpers:
-    """hermes_cli/_subprocess_compat.py POSIX + Windows behaviour."""
+    """shellgpt_cli/_subprocess_compat.py POSIX + Windows behaviour."""
 
 
     def test_resolve_node_command_returns_absolute_on_posix(self):
         """On Linux, resolve_node_command('sh', ['-c','echo hi']) picks up /bin/sh."""
-        from hermes_cli._subprocess_compat import resolve_node_command
+        from shellgpt_cli._subprocess_compat import resolve_node_command
         # We can't assert "npm is on PATH" portably; use `sh` which is
         # guaranteed on POSIX.  On Windows the test only confirms the
         # no-crash fallback path.
@@ -293,7 +293,7 @@ class TestSubprocessCompatHelpers:
            all descendants inherit (parent-console root cause isolated by
            the desktop backend fix, commit aa2ae36c3f).
         """
-        from hermes_cli import _subprocess_compat as sc
+        from shellgpt_cli import _subprocess_compat as sc
         assert not sc.windows_detach_flags() & 0x00000008, (
             "DETACHED_PROCESS must not be in windows_detach_flags(): it makes "
             "CREATE_NO_WINDOW a no-op and re-creates the per-descendant "
@@ -307,8 +307,8 @@ class TestSubprocessCompatHelpers:
     def test_windows_detach_flags_includes_breakaway_from_job(self):
         """CREATE_BREAKAWAY_FROM_JOB is load-bearing for the GUI-driven update path.
 
-        Without it, the gateway-respawn watcher spawned by ``hermes update``
-        (which runs under hermes-setup.exe, itself a grandchild of the
+        Without it, the gateway-respawn watcher spawned by ``shellgpt update``
+        (which runs under shellgpt-setup.exe, itself a grandchild of the
         Electron Desktop app) gets reaped when Electron exits and its
         Win32 job object is torn down by the OS.  Result: gateway dies
         during update and never comes back.
@@ -318,7 +318,7 @@ class TestSubprocessCompatHelpers:
         ``fix/windows-gateway-reliability`` (PR #40909) and the bit must
         stay in the default bundle going forward.
         """
-        from hermes_cli import _subprocess_compat as sc
+        from shellgpt_cli import _subprocess_compat as sc
         assert sc.windows_detach_flags() & 0x01000000, (
             "CREATE_BREAKAWAY_FROM_JOB (0x01000000) must remain in the "
             "default detach flag bundle so the Desktop GUI update flow "
@@ -336,7 +336,7 @@ class TestSubprocessCompatHelpers:
         It must drop ONLY the breakaway bit — DETACHED_PROCESS et al.
         are still required for the child to survive the parent's exit.
         """
-        from hermes_cli import _subprocess_compat as sc
+        from shellgpt_cli import _subprocess_compat as sc
         full = sc.windows_detach_flags()
         fallback = sc.windows_detach_flags_without_breakaway()
         # Fallback equals full minus the breakaway bit, nothing else changed.
@@ -398,7 +398,7 @@ class TestGitBashPathNormalization:
 
     def test_posix_noop(self):
         """Must NOT mutate paths on Linux/macOS."""
-        from hermes_cli.worktree_ops import _normalize_git_bash_path
+        from shellgpt_cli.worktree_ops import _normalize_git_bash_path
         if sys.platform != "win32":
             assert _normalize_git_bash_path("/home/teknium/foo") == "/home/teknium/foo"
             assert _normalize_git_bash_path("/c/Users/foo") == "/c/Users/foo"
@@ -413,7 +413,7 @@ class TestGitBashPathNormalization:
         ``windows_only``: the function's whole job is producing native
         Windows paths, which is only meaningful where ``os.sep`` is ``\\``.
         """
-        from hermes_cli import worktree_ops as cli_mod
+        from shellgpt_cli import worktree_ops as cli_mod
         assert cli_mod._normalize_git_bash_path("/c/Users/foo") == r"C:\Users\foo"
         assert cli_mod._normalize_git_bash_path("/C/Users/foo") == r"C:\Users\foo"
         assert cli_mod._normalize_git_bash_path("/cygdrive/d/data") == r"D:\data"
@@ -441,16 +441,16 @@ class TestWindowlessGatewayRestartSpec:
     overlay)."""
 
     def test_noop_on_non_windows(self):
-        import hermes_cli.gateway_windows as gw
+        import shellgpt_cli.gateway_windows as gw
 
-        argv = ["/path/venv/bin/python", "-m", "hermes_cli.main", "gateway", "run"]
+        argv = ["/path/venv/bin/python", "-m", "shellgpt_cli.main", "gateway", "run"]
         new_argv, cwd, env = gw.windowless_gateway_restart_spec(list(argv))
         assert new_argv == argv
         assert cwd == ""
         assert env == {}
 
     def test_empty_argv_is_safe(self):
-        import hermes_cli.gateway_windows as gw
+        import shellgpt_cli.gateway_windows as gw
 
         new_argv, cwd, env = gw.windowless_gateway_restart_spec([])
         assert new_argv == []
@@ -464,19 +464,19 @@ class TestWindowlessGatewayRestartSpec:
         is preserved verbatim.
 
         ``windows_only``: faking this on Linux needed two more fakes to hold
-        it up — a pre-import so the lazy ``hermes_cli.gateway`` import didn't
+        it up — a pre-import so the lazy ``shellgpt_cli.gateway`` import didn't
         re-run ``gateway/status``'s ``import msvcrt`` branch, and a mock of
-        ``get_hermes_home`` because the real one's ``Path.resolve()`` consults
+        ``get_shellgpt_home`` because the real one's ``Path.resolve()`` consults
         sysconfig and blew up under the platform patch. Both workarounds were
         symptoms of testing Windows on a host that isn't Windows; on the
         Windows runner neither is needed.
         """
-        import hermes_cli.gateway_windows as gw
+        import shellgpt_cli.gateway_windows as gw
 
         argv = [
             "C:/venv/Scripts/python.exe",
             "-m",
-            "hermes_cli.main",
+            "shellgpt_cli.main",
             "--profile",
             "work",
             "gateway",
@@ -487,9 +487,9 @@ class TestWindowlessGatewayRestartSpec:
         # Only the environment-dependent lookups are stubbed — the host is
         # genuinely Windows here.
         with mock.patch.object(
-            gw, "_stable_gateway_working_dir", return_value="C:/hermes"
+            gw, "_stable_gateway_working_dir", return_value="C:/shellgpt"
         ), mock.patch(
-            "hermes_cli.config.get_hermes_home", return_value="C:/hermes"
+            "shellgpt_cli.config.get_shellgpt_home", return_value="C:/shellgpt"
         ):
             new_argv, cwd, env = gw.windowless_gateway_restart_spec(list(argv))
 
@@ -498,7 +498,7 @@ class TestWindowlessGatewayRestartSpec:
         assert new_argv[0] == "C:/venv/Scripts/python.exe"
         # Everything after the interpreter is byte-for-byte preserved.
         assert new_argv[1:] == argv[1:]
-        assert cwd == "C:/hermes"
+        assert cwd == "C:/shellgpt"
         assert env["VIRTUAL_ENV"] == str(Path("C:/venv"))
         assert "PYTHONPATH" in env
 
@@ -547,12 +547,12 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
 
     def test_outer_watcher_retries_without_breakaway_on_oserror(self, monkeypatch):
         import gateway.run as gr
-        from hermes_cli._subprocess_compat import (
+        from shellgpt_cli._subprocess_compat import (
             windows_detach_flags_without_breakaway,
             windows_detach_popen_kwargs,
         )
 
-        monkeypatch.setattr(gr, "_resolve_hermes_bin", lambda: ["hermes"])
+        monkeypatch.setattr(gr, "_resolve_shellgpt_bin", lambda: ["shellgpt"])
 
         calls = []
 
@@ -580,7 +580,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
 
         # Scrubbed env preserved and identical on both calls.
         assert kw1["env"] is kw2["env"]
-        assert "_HERMES_GATEWAY" not in kw1["env"]
+        assert "_SHELLGPT_GATEWAY" not in kw1["env"]
 
         # Stable, non-flag spawn configuration preserved across both attempts.
         assert kw1["stdout"] is subprocess.DEVNULL
@@ -611,7 +611,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
     def test_outer_watcher_happy_path_spawns_once(self, monkeypatch):
         import gateway.run as gr
 
-        monkeypatch.setattr(gr, "_resolve_hermes_bin", lambda: ["hermes"])
+        monkeypatch.setattr(gr, "_resolve_shellgpt_bin", lambda: ["shellgpt"])
 
         calls = []
         monkeypatch.setattr(
@@ -631,7 +631,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
     ):
         import gateway.run as gr
 
-        monkeypatch.setattr(gr, "_resolve_hermes_bin", lambda: ["hermes"])
+        monkeypatch.setattr(gr, "_resolve_shellgpt_bin", lambda: ["shellgpt"])
 
         calls = []
 
@@ -646,7 +646,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
         # Deterministic sentinel in the environment the watcher inherits
         # (watcher_env = os.environ.copy()); the warning must never echo it.
         secret = "maxwell-do-not-log-this-secret-42993"
-        monkeypatch.setenv("HERMES_TEST_SECRET", secret)
+        monkeypatch.setenv("SHELLGPT_TEST_SECRET", secret)
 
         # Dual failure must NOT propagate — the user's CLI still exits cleanly.
         self._drive(gr)
@@ -668,7 +668,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
             assert not isinstance(arg, (OSError, list, dict))
 
         # The watcher's env carried the sentinel; the rendered warning must not.
-        assert secret in (kwargs_used.get("env") or {}).get("HERMES_TEST_SECRET", "")
+        assert secret in (kwargs_used.get("env") or {}).get("SHELLGPT_TEST_SECRET", "")
         rendered = fmt % tuple(log_args)
         assert secret not in rendered
         assert argv_used[2] not in rendered  # watcher script body

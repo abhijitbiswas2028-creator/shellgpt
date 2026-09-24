@@ -1,8 +1,8 @@
-"""`hermes profile install` / `hermes profile update` against a real distribution with cron jobs.
+"""`shellgpt profile install` / `shellgpt profile update` against a real distribution with cron jobs.
 
-A distribution author schedules jobs with the real CLI (``hermes -p author cron create``) and
+A distribution author schedules jobs with the real CLI (``shellgpt -p author cron create``) and
 publishes the profile directory; a user installs it, schedules a job of their own, and later
-pulls the author's next version with ``hermes profile update``. Every step is a fresh sandboxed
+pulls the author's next version with ``shellgpt profile update``. Every step is a fresh sandboxed
 CLI process over a fake HOME; the assertions read the cron store the scheduler itself reads
 (``cron/jobs.json``) and the CLI's own ``cron list``.
 
@@ -38,7 +38,7 @@ class World:
         self.env = H.isolated_env(root, pythonpath=H.WORKTREE)
         (root / "tmp").mkdir(exist_ok=True)
         self.env["TMPDIR"] = str(root / "tmp")
-        self.hermes_home = Path(self.env["HERMES_HOME"])
+        self.shellgpt_home = Path(self.env["SHELLGPT_HOME"])
         self.src = root / "dist-src"
         self.log: list[str] = []
         self.after_install: list[dict] = []
@@ -46,14 +46,14 @@ class World:
         self.after_update: list[dict] = []
 
     def cli(self, *args: str):
-        cp = H.run([PY, "-m", "hermes_cli.main", *args], env=self.env, cwd=self.root, writable=[self.root], timeout=300)
+        cp = H.run([PY, "-m", "shellgpt_cli.main", *args], env=self.env, cwd=self.root, writable=[self.root], timeout=300)
         self.log.append(H.describe(cp, 1500))
         assert cp.returncode == 0 and I.TRACEBACK not in cp.stdout + cp.stderr, H.describe(cp)
         return cp
 
     @property
     def installed(self) -> Path:
-        return self.hermes_home / "profiles" / "shipped-bot"
+        return self.shellgpt_home / "profiles" / "shipped-bot"
 
 
 def _by_name(jobs: list[dict]) -> dict[str, dict]:
@@ -84,7 +84,7 @@ def world(tmp_path_factory) -> World:
     w.cli("profile", "create", "author", "--no-alias")
     w.cli("-p", "author", "cron", "create", "--name", "weekly-digest", "0 9 * * 1", "write the weekly digest v1")
     w.cli("-p", "author", "cron", "create", "--name", "retired-job", "0 8 * * *", "a job the author retires in v2")
-    author = w.hermes_home / "profiles" / "author"
+    author = w.shellgpt_home / "profiles" / "author"
     assert set(_by_name(I.cron_jobs(author))) == {"weekly-digest", "retired-job"}
     w.src.mkdir()
     shutil.copytree(author / "cron", w.src / "cron", ignore=shutil.ignore_patterns("*.lock", "output", "*.db*"))

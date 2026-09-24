@@ -1,8 +1,8 @@
-"""Global emergency stop (`hermes pause` / `hermes resume`) — agent/estop.py.
+"""Global emergency stop (`shellgpt pause` / `shellgpt resume`) — agent/estop.py.
 
 The ESTOP sentinel is a resumable pause for NEW work only: cron dispatch,
 kanban dispatch, and new gateway turns are halted while it is engaged; work
-already in flight is never touched. Removing the sentinel (`hermes resume`)
+already in flight is never touched. Removing the sentinel (`shellgpt resume`)
 restores normal operation with no restart.
 
 Ported from: gastownhall/gastown estop.go (MIT); related prior art: #26778
@@ -21,9 +21,9 @@ from agent import estop
 
 
 @pytest.fixture
-def hermes_home(tmp_path, monkeypatch):
-    """Point HERMES_HOME at a temp dir and reset estop module log state."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+def shellgpt_home(tmp_path, monkeypatch):
+    """Point SHELLGPT_HOME at a temp dir and reset estop module log state."""
+    monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
     estop._logged_components.clear()
     return tmp_path
 
@@ -31,38 +31,38 @@ def hermes_home(tmp_path, monkeypatch):
 # ── sentinel create / remove ────────────────────────────────────────────────
 
 
-def test_engage_creates_sentinel_and_is_engaged(hermes_home):
+def test_engage_creates_sentinel_and_is_engaged(shellgpt_home):
     assert estop.is_engaged() is False
     estop.engage()
-    assert (hermes_home / "ESTOP").exists()
+    assert (shellgpt_home / "ESTOP").exists()
     assert estop.is_engaged() is True
 
 
-def test_disengage_removes_sentinel(hermes_home):
+def test_disengage_removes_sentinel(shellgpt_home):
     estop.engage()
     assert estop.disengage() is True
-    assert not (hermes_home / "ESTOP").exists()
+    assert not (shellgpt_home / "ESTOP").exists()
     assert estop.is_engaged() is False
     # Disengaging when not engaged is a no-op that reports False.
     assert estop.disengage() is False
 
 
-def test_reason_and_timestamp_stored(hermes_home):
+def test_reason_and_timestamp_stored(shellgpt_home):
     estop.engage(reason="runaway cron fan-out")
     state = estop.get_state()
     assert state is not None
     assert state["reason"] == "runaway cron fan-out"
     assert state["engaged_at"]  # ISO timestamp string
 
-    raw = json.loads((hermes_home / "ESTOP").read_text(encoding="utf-8"))
+    raw = json.loads((shellgpt_home / "ESTOP").read_text(encoding="utf-8"))
     assert raw["reason"] == "runaway cron fan-out"
 
 
 
 
-def test_corrupt_sentinel_still_engages(hermes_home):
+def test_corrupt_sentinel_still_engages(shellgpt_home):
     """A hand-touched/corrupt ESTOP file must still pause (fail safe)."""
-    (hermes_home / "ESTOP").write_text("not json", encoding="utf-8")
+    (shellgpt_home / "ESTOP").write_text("not json", encoding="utf-8")
     assert estop.is_engaged() is True
     state = estop.get_state()
     assert state is not None
@@ -74,7 +74,7 @@ def test_corrupt_sentinel_still_engages(hermes_home):
 
 
 
-def test_paused_reply_surfaces_reason_and_resume_hint(hermes_home):
+def test_paused_reply_surfaces_reason_and_resume_hint(shellgpt_home):
     estop.engage(reason="deploy window")
     notice = estop.paused_reply()
     assert notice is not None
@@ -92,7 +92,7 @@ def test_paused_reply_surfaces_reason_and_resume_hint(hermes_home):
 # ── cron scheduler integration ──────────────────────────────────────────────
 
 
-def test_cron_tick_skips_dispatch_when_engaged(hermes_home, monkeypatch):
+def test_cron_tick_skips_dispatch_when_engaged(shellgpt_home, monkeypatch):
     from cron import scheduler
 
     calls = []
@@ -108,7 +108,7 @@ def test_cron_tick_skips_dispatch_when_engaged(hermes_home, monkeypatch):
     assert calls == [], "engaged ESTOP must skip the due-job scan entirely"
 
 
-def test_cron_tick_resumes_after_disengage(hermes_home, monkeypatch):
+def test_cron_tick_resumes_after_disengage(shellgpt_home, monkeypatch):
     from cron import scheduler
 
     calls = []
@@ -131,7 +131,7 @@ def test_cron_tick_resumes_after_disengage(hermes_home, monkeypatch):
 # ── kanban dispatcher integration ───────────────────────────────────────────
 
 
-def test_kanban_dispatch_blocked_when_engaged(hermes_home):
+def test_kanban_dispatch_blocked_when_engaged(shellgpt_home):
     from gateway.kanban_watchers_common import _kanban_dispatch_allowed
 
     assert _kanban_dispatch_allowed() is True
@@ -162,7 +162,7 @@ class _FakeEvent:
 
 
 @pytest.mark.asyncio
-async def test_gateway_new_turn_gets_paused_reply(hermes_home):
+async def test_gateway_new_turn_gets_paused_reply(shellgpt_home):
     from gateway.run import GatewayRunner
 
     runner = object.__new__(GatewayRunner)
@@ -175,7 +175,7 @@ async def test_gateway_new_turn_gets_paused_reply(hermes_home):
 
 
 @pytest.mark.asyncio
-async def test_gateway_internal_events_bypass_estop(hermes_home):
+async def test_gateway_internal_events_bypass_estop(shellgpt_home):
     """Internal events (in-flight work completions) must NOT be paused."""
     from gateway.run import GatewayRunner
 
@@ -193,11 +193,11 @@ async def test_gateway_internal_events_bypass_estop(hermes_home):
     assert reply is None or "paused" not in (reply or "").lower()
 
 
-# ── CLI: hermes pause / hermes resume ───────────────────────────────────────
+# ── CLI: shellgpt pause / shellgpt resume ───────────────────────────────────────
 
 
-def test_cli_pause_engages_with_reason(hermes_home, capsys):
-    from hermes_cli.subcommands.pause import cmd_pause
+def test_cli_pause_engages_with_reason(shellgpt_home, capsys):
+    from shellgpt_cli.subcommands.pause import cmd_pause
 
     rc = cmd_pause(argparse.Namespace(reason="ops incident"))
     assert rc == 0
@@ -206,16 +206,16 @@ def test_cli_pause_engages_with_reason(hermes_home, capsys):
     assert "paused" in capsys.readouterr().out.lower()
 
 
-def test_cli_pause_idempotent(hermes_home, capsys):
-    from hermes_cli.subcommands.pause import cmd_pause
+def test_cli_pause_idempotent(shellgpt_home, capsys):
+    from shellgpt_cli.subcommands.pause import cmd_pause
 
     assert cmd_pause(argparse.Namespace(reason=None)) == 0
     assert cmd_pause(argparse.Namespace(reason=None)) == 0
     assert estop.is_engaged() is True
 
 
-def test_cli_resume_disengages(hermes_home, capsys):
-    from hermes_cli.subcommands.pause import cmd_pause, cmd_resume
+def test_cli_resume_disengages(shellgpt_home, capsys):
+    from shellgpt_cli.subcommands.pause import cmd_pause, cmd_resume
 
     cmd_pause(argparse.Namespace(reason=None))
     rc = cmd_resume(argparse.Namespace())
@@ -228,11 +228,11 @@ def test_cli_resume_disengages(hermes_home, capsys):
 
 
 
-# ── hermes status surfacing ─────────────────────────────────────────────────
+# ── shellgpt status surfacing ─────────────────────────────────────────────────
 
 
-def test_status_line_when_paused(hermes_home):
-    from hermes_cli.status import _estop_status_line
+def test_status_line_when_paused(shellgpt_home):
+    from shellgpt_cli.status import _estop_status_line
 
     assert _estop_status_line() is None
     estop.engage(reason="ops")
@@ -247,9 +247,9 @@ def test_status_line_when_paused(hermes_home):
 # ── post-merge audit fixes (#81148 follow-up) ───────────────────────────────
 
 
-def test_is_engaged_fails_safe_on_stat_error(hermes_home, monkeypatch):
+def test_is_engaged_fails_safe_on_stat_error(shellgpt_home, monkeypatch):
     """A stat failure must report ENGAGED (fail safe) — the pause has to
-    hold even when HERMES_HOME is misbehaving, matching the module's
+    hold even when SHELLGPT_HOME is misbehaving, matching the module's
     corrupt-sentinel doctrine."""
     class _BoomPath:
         def exists(self):
@@ -270,7 +270,7 @@ class _FakeCmdEvent(_FakeEvent):
 
 
 @pytest.mark.asyncio
-async def test_gateway_slash_commands_bypass_estop(hermes_home):
+async def test_gateway_slash_commands_bypass_estop(shellgpt_home):
     """Recognized slash commands must pass the estop gate — /pause off is
     the in-band resume path for messaging-only users, and /status, /help
     and friends must keep working while paused."""
@@ -286,7 +286,7 @@ async def test_gateway_slash_commands_bypass_estop(hermes_home):
         reply = await runner._handle_message(_FakeCmdEvent())
     except Exception:
         return
-    assert reply is None or "hermes is paused" not in (reply or "").lower()
+    assert reply is None or "shellgpt is paused" not in (reply or "").lower()
 
 
 class _FakePauseEvent(_FakeEvent):
@@ -303,7 +303,7 @@ class _FakePauseEvent(_FakeEvent):
 
 
 @pytest.mark.asyncio
-async def test_gateway_pause_command_engages_and_resumes(hermes_home):
+async def test_gateway_pause_command_engages_and_resumes(shellgpt_home):
     from gateway.run import GatewayRunner
 
     runner = object.__new__(GatewayRunner)
@@ -326,7 +326,7 @@ async def test_gateway_pause_command_engages_and_resumes(hermes_home):
 
 
 def test_pause_command_registered_for_gateway():
-    from hermes_cli.commands import GATEWAY_KNOWN_COMMANDS, resolve_command
+    from shellgpt_cli.commands import GATEWAY_KNOWN_COMMANDS, resolve_command
 
     cmd = resolve_command("pause")
     assert cmd is not None and cmd.name == "pause"
@@ -336,16 +336,16 @@ def test_pause_command_registered_for_gateway():
 
 
 def test_profile_gateway_honors_canonical_root_estop(tmp_path, monkeypatch):
-    """fleet-analyst-class: HERMES_HOME is a profile dir; pause lives at root.
+    """fleet-analyst-class: SHELLGPT_HOME is a profile dir; pause lives at root.
 
-    A process launched with HERMES_HOME=~/.hermes/profiles/fleet-analyst must
-    still treat ~/.hermes/ESTOP as engaged. Otherwise `hermes pause` is not
+    A process launched with SHELLGPT_HOME=~/.shellgpt/profiles/fleet-analyst must
+    still treat ~/.shellgpt/ESTOP as engaged. Otherwise `shellgpt pause` is not
     a global emergency stop (t_7b65ff88).
     """
-    root = tmp_path / "hermes-root"
+    root = tmp_path / "shellgpt-root"
     profile = root / "profiles" / "fleet-analyst"
     profile.mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(profile))
+    monkeypatch.setenv("SHELLGPT_HOME", str(profile))
     estop._logged_components.clear()
 
     assert estop.is_engaged() is False

@@ -16,7 +16,7 @@ from tools.skills_hub_install import (
 from tools.skills_hub_models import SkillBundle, SkillMeta, SkillSource, _referenced_support_paths
 from tools.skills_hub_official import OptionalSkillSource
 from tools.skills_hub_search import (
-    HERMES_INDEX_TTL, _load_hermes_index, create_source_router, parallel_search_sources, unified_search,
+    SHELLGPT_INDEX_TTL, _load_shellgpt_index, create_source_router, parallel_search_sources, unified_search,
 )
 from tools.skills_hub_skillssh import SkillsShSource
 from tools.skills_hub_sources import LobeHubSource, UrlSource, WellKnownSkillSource
@@ -34,8 +34,8 @@ class TestParseFrontmatterQuick:
         assert fm["name"] == "test-skill"
         assert fm["description"] == "A test."
 
-        nested = "---\nname: test\nmetadata:\n  hermes:\n    tags: [a, b]\n---\n\nBody.\n"
-        assert GitHubSource._parse_frontmatter_quick(nested)["metadata"]["hermes"]["tags"] == ["a", "b"]
+        nested = "---\nname: test\nmetadata:\n  shellgpt:\n    tags: [a, b]\n---\n\nBody.\n"
+        assert GitHubSource._parse_frontmatter_quick(nested)["metadata"]["shellgpt"]["tags"] == ["a", "b"]
 
     def test_degenerate_frontmatter_returns_empty(self):
         for content in (
@@ -148,7 +148,7 @@ class TestTrustLevelFor:
             assert repo in tap_repos, (
                 f"Trusted repo {repo!r} is in TRUSTED_REPOS but missing "
                 "from GitHubSource.DEFAULT_TAPS — its skills will not be "
-                "browsable via `hermes skills browse`."
+                "browsable via `shellgpt skills browse`."
             )
 
 
@@ -955,15 +955,15 @@ class TestGithubProviderLabeling:
         assert meta.extra.get("provider") == "NVIDIA"
 
 def _make_index_source(skills):
-    """Build a HermesIndexSource pre-loaded with a fixed skill list."""
-    from tools.skills_hub_official import HermesIndexSource
-    src = HermesIndexSource(auth=GitHubAuth())
+    """Build a ShellGPTIndexSource pre-loaded with a fixed skill list."""
+    from tools.skills_hub_official import ShellGPTIndexSource
+    src = ShellGPTIndexSource(auth=GitHubAuth())
     src._index = {"skills": skills}
     src._loaded = True
     return src
 
 
-class TestHermesIndexSearch:
+class TestShellGPTIndexSearch:
     def test_search_matches_identifier_and_provider(self):
         # NVIDIA skill whose name/description does NOT contain "nvidia" — only
         # the identifier and the provider label do. The old substring-only
@@ -1017,7 +1017,7 @@ class TestProviderFilter:
         other = SkillMeta(name="cuda-clone", description="gpu", source="clawhub",
                           identifier="clawhub/cuda-clone", trust_level="community")
         src = MagicMock()
-        src.source_id.return_value = "hermes-index"
+        src.source_id.return_value = "shellgpt-index"
         src.is_available = True
         src.search.return_value = [nv, other]
         results = unified_search("cuda", [src], source_filter="nvidia", limit=25)
@@ -1059,7 +1059,7 @@ class TestOptionalSkillSourceMetadata:
         meta = src.inspect("official/finance/3-statement-model")
 
         assert meta is not None
-        assert meta.repo == "NousResearch/hermes-agent"
+        assert meta.repo == "NousResearch/shellgpt-agent"
         assert meta.path == "optional-skills/finance/3-statement-model"
 
     def test_scan_all_accepts_install_prefix_but_rejects_nested_support_skills(self, tmp_path):
@@ -1131,7 +1131,7 @@ class TestOptionalSkillSourceBinaryAssets:
 
 class TestOptionalSkillSourceLiveRepoFallback:
     """Skills merged to main after the local install was cut must still be
-    searchable and installable without `hermes update` (live-repo fallback)."""
+    searchable and installable without `shellgpt update` (live-repo fallback)."""
 
     def _make_source(self, tmp_path, remote_dirs):
         optional_root = tmp_path / "optional-skills"
@@ -1240,7 +1240,7 @@ class TestOptionalSkillSourceLiveRepoFallback:
         meta = src.inspect("official/software-development/ast-grep")
 
         assert meta is not None
-        assert meta.repo == "NousResearch/hermes-agent"
+        assert meta.repo == "NousResearch/shellgpt-agent"
         assert meta.path == "optional-skills/software-development/ast-grep"
 
     def test_offline_degrades_to_local_only(self, tmp_path):
@@ -1636,7 +1636,7 @@ class TestInstallPathSafety:
         """Installing a skill whose name matches an existing category directory
         that contains other skills must NOT silently wipe that entire directory.
 
-        Regression test for GitHub issue #75983: ``hermes skills install … --name
+        Regression test for GitHub issue #75983: ``shellgpt skills install … --name
         research`` deleted the whole ``skills/research/`` category bucket,
         destroying 16 unrelated skills.
         """
@@ -2015,7 +2015,7 @@ class TestParallelSearchSourcesTimeout:
 
 
 class TestIndexMissFallback:
-    """An available hermes-index stands in for the external registries; when it
+    """An available shellgpt-index stands in for the external registries; when it
     has no match for a query the registries it displaced must still be asked
     (#112503: a skill live on skills.sh but not yet in the index returned zero
     results on every surface)."""
@@ -2025,7 +2025,7 @@ class TestIndexMissFallback:
                          identifier=f"{sid}/humanizar", trust_level="community")
 
     def _sources(self, index_results):
-        index = _FakeSource("hermes-index", results=index_results)
+        index = _FakeSource("shellgpt-index", results=index_results)
         index.is_available = True
         skills_sh = _FakeSource("skills-sh", results=[self._meta("skills-sh")])
         github = _FakeSource("github", results=[self._meta("github")])
@@ -2038,7 +2038,7 @@ class TestIndexMissFallback:
             [index, skills_sh, github], query="humanizar", overall_timeout=5.0)
 
         assert [r.identifier for r in results] == ["skills-sh/humanizar"]
-        assert source_counts == {"hermes-index": 0, "skills-sh": 1}
+        assert source_counts == {"shellgpt-index": 0, "skills-sh": 1}
         assert timed_out == []
         assert github.calls == 0  # one miss must not spend the unauthenticated GitHub budget
 
@@ -2048,13 +2048,13 @@ class TestIndexMissFallback:
         assert results == [] and skills_sh.calls == 0
 
     def test_index_hit_leaves_registries_untouched(self):
-        index, skills_sh, github = self._sources([self._meta("hermes-index")])
+        index, skills_sh, github = self._sources([self._meta("shellgpt-index")])
 
         results, source_counts, _ = parallel_search_sources(
             [index, skills_sh, github], query="humanizar", overall_timeout=5.0)
 
-        assert [r.identifier for r in results] == ["hermes-index/humanizar"]
-        assert source_counts == {"hermes-index": 1}
+        assert [r.identifier for r in results] == ["shellgpt-index/humanizar"]
+        assert source_counts == {"shellgpt-index": 1}
         assert skills_sh.calls == 0 and github.calls == 0
 
     def test_provider_filter_miss_skips_registries_without_provider_data(self):
@@ -2069,7 +2069,7 @@ class TestIndexMissFallback:
 
         assert time.monotonic() - started < 1.0
         assert results == [] and timed_out == []
-        assert source_counts == {"hermes-index": 0}
+        assert source_counts == {"shellgpt-index": 0}
         assert skills_sh.calls == 0 and clawhub.calls == 0
 
     def test_fallback_pass_has_its_own_short_budget(self, monkeypatch):
@@ -2085,16 +2085,16 @@ class TestIndexMissFallback:
 
         assert time.monotonic() - started < 2.0
         assert [r.identifier for r in results] == ["skills-sh/humanizar"]
-        assert source_counts == {"hermes-index": 0, "skills-sh": 1}
+        assert source_counts == {"shellgpt-index": 0, "skills-sh": 1}
         assert timed_out == ["clawhub"]
 
 
 # ---------------------------------------------------------------------------
-# _load_hermes_index — centralized index fetch (Browse-hub landing / search)
+# _load_shellgpt_index — centralized index fetch (Browse-hub landing / search)
 # ---------------------------------------------------------------------------
 
 
-class TestLoadHermesIndex:
+class TestLoadShellGPTIndex:
     """Regression coverage for the Skills-Hub index fetch.
 
     The centralized index is a large body served with Content-Encoding: br.
@@ -2108,8 +2108,8 @@ class TestLoadHermesIndex:
     @staticmethod
     def _isolate_cache(monkeypatch, tmp_path):
         """Point the on-disk cache at an empty tmp dir so no real cache leaks in."""
-        cache_file = tmp_path / "hermes-index.json"
-        monkeypatch.setattr("tools.skills_hub_search._hermes_index_cache_file", lambda: cache_file)
+        cache_file = tmp_path / "shellgpt-index.json"
+        monkeypatch.setattr("tools.skills_hub_search._shellgpt_index_cache_file", lambda: cache_file)
         return cache_file
 
     def test_fetch_does_not_request_brotli(self, monkeypatch, tmp_path):
@@ -2129,7 +2129,7 @@ class TestLoadHermesIndex:
 
         monkeypatch.setattr(hub_search.httpx, "get", fake_get)
 
-        data = _load_hermes_index()
+        data = _load_shellgpt_index()
         assert data == {"skills": [{"name": "x"}]}
 
         accept = captured["headers"].get("Accept-Encoding", "")
@@ -2146,7 +2146,7 @@ class TestLoadHermesIndex:
         cache_file = self._isolate_cache(monkeypatch, tmp_path)
         cache_file.write_text(json.dumps({"skills": [{"name": "stale"}]}))
         # Force the cache to look expired so the network path runs.
-        old = time.time() - (HERMES_INDEX_TTL + 100)
+        old = time.time() - (SHELLGPT_INDEX_TTL + 100)
         import os
 
         os.utime(cache_file, (old, old))
@@ -2156,7 +2156,7 @@ class TestLoadHermesIndex:
 
         monkeypatch.setattr(hub_search.httpx, "get", fake_get)
 
-        data = _load_hermes_index()
+        data = _load_shellgpt_index()
         assert data == {"skills": [{"name": "stale"}]}
 
 

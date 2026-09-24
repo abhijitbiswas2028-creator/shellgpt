@@ -5,10 +5,10 @@ import type {
   ConnectorErrorReason,
   RpcMethods,
   ToolsChange
-} from '@hermes/shared'
-import { JsonRpcGatewayError } from '@hermes/shared'
+} from '@shellgpt/shared'
+import { JsonRpcGatewayError } from '@shellgpt/shared'
 
-import type { ProfileScope } from '@/hermes'
+import type { ProfileScope } from '@/shellgpt'
 import { requestGatewayForAgent } from '@/store/gateway'
 
 export type { ConnectorErrorReason }

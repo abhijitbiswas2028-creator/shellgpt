@@ -4,7 +4,7 @@ Covers:
 
 1. ``typescript-language-server`` install recipe pulls in ``typescript``
    alongside the server, so the npm install command targets both.
-2. ``hermes lsp status`` surfaces a ``Backend warnings`` section when
+2. ``shellgpt lsp status`` surfaces a ``Backend warnings`` section when
    bash-language-server is installed but ``shellcheck`` is missing.
 3. ``_check_lint`` returns ``skipped`` (not ``error``) when the linter
    command exists on PATH but couldn't actually run — e.g. ``npx tsc``
@@ -31,7 +31,7 @@ import pytest
 
 def test_install_npm_works_without_extras(tmp_path, monkeypatch):
     """Backwards compat: pyright-style recipes (no extras) still install."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
 
     captured = {}
 
@@ -50,7 +50,7 @@ def test_install_npm_works_without_extras(tmp_path, monkeypatch):
     assert "pyright" in cmd
     # Should not blow up when extra_pkgs is omitted/None
     install_targets = [c for c in cmd if not c.startswith("-") and c not in {
-        "install", "--prefix", str(install_mod.hermes_lsp_bin_dir().parent),
+        "install", "--prefix", str(install_mod.shellgpt_lsp_bin_dir().parent),
         "/usr/bin/npm",
     }]
     assert install_targets == ["pyright"]
@@ -67,12 +67,12 @@ def test_install_pip_finds_windows_scripts_launcher(tmp_path, monkeypatch):
     made the test assert against a directory tree the test itself created, on
     a host where pip would never lay it out that way.
     """
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
 
     from agent.lsp import install as install_mod
 
     def fake_run(cmd, **kwargs):
-        scripts_dir = install_mod.hermes_lsp_bin_dir().parent / "python-packages" / "Scripts"
+        scripts_dir = install_mod.shellgpt_lsp_bin_dir().parent / "python-packages" / "Scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
         launcher = scripts_dir / "fake-language-server.exe"
         launcher.write_text("launcher\n", encoding="utf-8")
@@ -85,11 +85,11 @@ def test_install_pip_finds_windows_scripts_launcher(tmp_path, monkeypatch):
 
     assert resolved is not None
     assert resolved.endswith("fake-language-server.exe")
-    assert (install_mod.hermes_lsp_bin_dir() / "fake-language-server.exe").exists()
+    assert (install_mod.shellgpt_lsp_bin_dir() / "fake-language-server.exe").exists()
 
 
 # ---------------------------------------------------------------------------
-# Fix 2: ``hermes lsp status`` surfaces shellcheck-missing for bash
+# Fix 2: ``shellgpt lsp status`` surfaces shellcheck-missing for bash
 # ---------------------------------------------------------------------------
 
 
@@ -99,7 +99,7 @@ def test_install_pip_finds_windows_scripts_launcher(tmp_path, monkeypatch):
 
 def test_backend_warnings_fires_when_bash_installed_but_shellcheck_missing(tmp_path, monkeypatch):
     """The exact scenario from the bug report."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
     from agent.lsp import cli as lsp_cli
 
     def which(name):
@@ -169,10 +169,10 @@ def test_lsp_package_manager_config_selects_installer_argv_and_never_falls_back_
 
     from agent.lsp import install as install_mod
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    staging = str(install_mod.hermes_lsp_bin_dir().parent)
+    monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
+    staging = str(install_mod.shellgpt_lsp_bin_dir().parent)
     cfg = {"lsp": {}}
-    monkeypatch.setattr("hermes_cli.config.load_config_readonly", lambda: cfg)
+    monkeypatch.setattr("shellgpt_cli.config.load_config_readonly", lambda: cfg)
     runs = []
     monkeypatch.setattr(install_mod.subprocess, "run", lambda cmd, **kw: (runs.append(cmd), MagicMock(returncode=0, stderr=""))[1])
     present = {"npm": "/usr/bin/npm", "pnpm": "/usr/bin/pnpm", "yarn": "/usr/bin/yarn"}

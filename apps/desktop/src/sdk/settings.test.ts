@@ -68,12 +68,12 @@ describe('host.settings', () => {
 
     expect(writes).toEqual(
       expect.arrayContaining([
-        ['hermes.desktop.sessionListDensity', 'detailed'],
-        ['hermes.desktop.tabStripDefault', 'never'],
-        ['hermes.desktop.backdrop.v1', 'true'],
-        ['hermes.desktop.intro-splash.v1', 'false'],
-        ['hermes.desktop.reasoning.collapsedByDefault', 'true'],
-        ['hermes.desktop.composerPopout.gesturesEnabled', 'false']
+        ['shellgpt.desktop.sessionListDensity', 'detailed'],
+        ['shellgpt.desktop.tabStripDefault', 'never'],
+        ['shellgpt.desktop.backdrop.v1', 'true'],
+        ['shellgpt.desktop.intro-splash.v1', 'false'],
+        ['shellgpt.desktop.reasoning.collapsedByDefault', 'true'],
+        ['shellgpt.desktop.composerPopout.gesturesEnabled', 'false']
       ])
     )
   })

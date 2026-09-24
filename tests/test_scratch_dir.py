@@ -1,4 +1,4 @@
-"""Scratch dir contract: TMPDIR/TMP/TEMP follow HERMES_HOME/cache/scratch unless the user set them."""
+"""Scratch dir contract: TMPDIR/TMP/TEMP follow SHELLGPT_HOME/cache/scratch unless the user set them."""
 
 import os
 import stat
@@ -9,34 +9,34 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_constants import apply_scratch_tmp_env, get_scratch_dir, prune_scratch_dir
+from shellgpt_constants import apply_scratch_tmp_env, get_scratch_dir, prune_scratch_dir
 
 
 def test_scratch_env_follows_home_and_respects_user_tmpdir(tmp_path):
-    """Unset temp vars → scratch of env HERMES_HOME; a Hermes-exported value re-derives for a routed
+    """Unset temp vars → scratch of env SHELLGPT_HOME; a ShellGPT-exported value re-derives for a routed
     home; a user/OS-set value (macOS ``/var/folders``, ``%TEMP%``) is never touched."""
     home_a, home_b = tmp_path / "a", tmp_path / "b"
-    env = {"HERMES_HOME": str(home_a)}
+    env = {"SHELLGPT_HOME": str(home_a)}
     assert apply_scratch_tmp_env(env) is True
     scratch_a = str(home_a / "cache" / "scratch")
-    assert env["TMPDIR"] == env["TMP"] == env["TEMP"] == env["HERMES_SCRATCH_DIR"] == scratch_a
+    assert env["TMPDIR"] == env["TMP"] == env["TEMP"] == env["SHELLGPT_SCRATCH_DIR"] == scratch_a
     assert os.path.isdir(scratch_a)
 
-    env["HERMES_HOME"] = str(home_b)  # child served under another profile's home
+    env["SHELLGPT_HOME"] = str(home_b)  # child served under another profile's home
     assert apply_scratch_tmp_env(env) is True
     assert env["TMPDIR"] == str(home_b / "cache" / "scratch")
 
-    user_env = {"HERMES_HOME": str(home_a), "TMPDIR": "/var/folders/zz"}
+    user_env = {"SHELLGPT_HOME": str(home_a), "TMPDIR": "/var/folders/zz"}
     assert apply_scratch_tmp_env(user_env) is False
-    assert user_env["TMPDIR"] == "/var/folders/zz" and "HERMES_SCRATCH_DIR" not in user_env
+    assert user_env["TMPDIR"] == "/var/folders/zz" and "SHELLGPT_SCRATCH_DIR" not in user_env
     assert "TMP" not in user_env  # a partially user-set triple is left exactly as found
 
 
 def test_bootstrap_import_exports_scratch_to_process_and_children(tmp_path):
-    """``import hermes_bootstrap`` alone makes ``tempfile`` (this process AND a child) land in scratch."""
-    env = {k: v for k, v in os.environ.items() if k not in ("TMPDIR", "TMP", "TEMP", "HERMES_SCRATCH_DIR")}
-    env["HERMES_HOME"] = str(tmp_path)
-    code = ("import tempfile, os, subprocess, sys; import hermes_bootstrap; "
+    """``import shellgpt_bootstrap`` alone makes ``tempfile`` (this process AND a child) land in scratch."""
+    env = {k: v for k, v in os.environ.items() if k not in ("TMPDIR", "TMP", "TEMP", "SHELLGPT_SCRATCH_DIR")}
+    env["SHELLGPT_HOME"] = str(tmp_path)
+    code = ("import tempfile, os, subprocess, sys; import shellgpt_bootstrap; "
             "print(tempfile.gettempdir()); "
             "print(subprocess.run([sys.executable, '-c', 'import tempfile;print(tempfile.gettempdir())'],"
             " capture_output=True, text=True).stdout.strip())")
@@ -68,15 +68,15 @@ def test_prune_removes_idle_entries_and_keeps_trees_written_deep_inside(tmp_path
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX directory modes")
 class TestScratchDirPermissionPolicy:
     """get_scratch_dir must honor the home permission policy instead of a blanket 0700:
-    an explicit HERMES_HOME_MODE and a managed/shared home win (#117347)."""
+    an explicit SHELLGPT_HOME_MODE and a managed/shared home win (#117347)."""
 
     def _isolate_env(self, monkeypatch, tmp_path):
         # A known, marker-free effective home: each case below plants `.managed` in the home whose
         # scratch dir it exercises (`get_scratch_dir(home)` reads the marker there), and the real
         # home's own marker must not leak into callers that still resolve the effective home.
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
-        for var in ("HERMES_HOME_MODE", "HERMES_MANAGED", "HERMES_CONTAINER",
-                    "HERMES_SKIP_CHMOD", "HERMES_UID", "HERMES_GID"):
+        monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path / "home"))
+        for var in ("SHELLGPT_HOME_MODE", "SHELLGPT_MANAGED", "SHELLGPT_CONTAINER",
+                    "SHELLGPT_SKIP_CHMOD", "SHELLGPT_UID", "SHELLGPT_GID"):
             monkeypatch.delenv(var, raising=False)
 
     def test_default_is_owner_only(self, tmp_path, monkeypatch):
@@ -86,13 +86,13 @@ class TestScratchDirPermissionPolicy:
 
     def test_explicit_home_mode_retained_with_setgid(self, tmp_path, monkeypatch):
         self._isolate_env(monkeypatch, tmp_path)
-        monkeypatch.setenv("HERMES_HOME_MODE", "2770")
+        monkeypatch.setenv("SHELLGPT_HOME_MODE", "2770")
         scratch = get_scratch_dir(tmp_path, prune=False)
         assert stat.S_IMODE(os.stat(scratch).st_mode) == 0o2770
 
     def test_managed_env_leaves_preexisting_mode_untouched(self, tmp_path, monkeypatch):
         self._isolate_env(monkeypatch, tmp_path)
-        monkeypatch.setenv("HERMES_MANAGED", "nixos")
+        monkeypatch.setenv("SHELLGPT_MANAGED", "nixos")
         pre = tmp_path / "cache" / "scratch"
         pre.mkdir(parents=True)
         os.chmod(pre, 0o2770)
@@ -137,8 +137,8 @@ class TestScratchDirPermissionPolicy:
 
     def test_effective_home_marker_does_not_govern_another_homes_scratch(self, tmp_path, monkeypatch):
         # The caller's home decides the policy. A boot caller (``export_scratch_tmp_env``) and
-        # ``hermes doctor`` have already resolved theirs, so the marker lookup must not fall back
-        # to ``get_hermes_home()``: for a sticky profile with HERMES_HOME unset that lookup warns
+        # ``shellgpt doctor`` have already resolved theirs, so the marker lookup must not fall back
+        # to ``get_shellgpt_home()``: for a sticky profile with SHELLGPT_HOME unset that lookup warns
         # about the default profile on every command, and it is the wrong home to judge by anyway.
         selected = tmp_path / "home"
         selected.mkdir()
@@ -151,10 +151,10 @@ class TestScratchDirPermissionPolicy:
         assert stat.S_IMODE(os.stat(get_scratch_dir(other, prune=False)).st_mode) == 0o700
 
     def test_canonical_container_signal_without_env_override_keeps_operator_mode(self, tmp_path, monkeypatch):
-        # Podman/containerd/K8s runtimes often don't export HERMES_CONTAINER; the canonical
+        # Podman/containerd/K8s runtimes often don't export SHELLGPT_CONTAINER; the canonical
         # _detect_container breadth (not the narrower legacy signal set) must skip the chmod.
         self._isolate_env(monkeypatch, tmp_path)
-        monkeypatch.setattr("hermes_constants._detect_container", lambda: True)
+        monkeypatch.setattr("shellgpt_constants._detect_container", lambda: True)
         pre = tmp_path / "cache" / "scratch"
         pre.mkdir(parents=True)
         os.chmod(pre, 0o750)
@@ -163,7 +163,7 @@ class TestScratchDirPermissionPolicy:
 
     def test_repeated_calls_do_not_strip_setgid(self, tmp_path, monkeypatch):
         self._isolate_env(monkeypatch, tmp_path)
-        monkeypatch.setenv("HERMES_HOME_MODE", "2770")
+        monkeypatch.setenv("SHELLGPT_HOME_MODE", "2770")
         first = get_scratch_dir(tmp_path, prune=False)
         second = get_scratch_dir(tmp_path, prune=False)
         assert first == second
@@ -171,18 +171,18 @@ class TestScratchDirPermissionPolicy:
 
     def test_container_keeps_operator_mode_but_honors_explicit(self, tmp_path, monkeypatch):
         self._isolate_env(monkeypatch, tmp_path)
-        monkeypatch.setenv("HERMES_CONTAINER", "1")
+        monkeypatch.setenv("SHELLGPT_CONTAINER", "1")
         pre = tmp_path / "cache" / "scratch"
         pre.mkdir(parents=True)
         os.chmod(pre, 0o750)
         assert stat.S_IMODE(os.stat(get_scratch_dir(tmp_path, prune=False)).st_mode) == 0o750
-        monkeypatch.setenv("HERMES_HOME_MODE", "2770")
+        monkeypatch.setenv("SHELLGPT_HOME_MODE", "2770")
         assert stat.S_IMODE(os.stat(get_scratch_dir(tmp_path, prune=False)).st_mode) == 0o2770
 
-    def test_hermes_uid_gid_applied_to_scratch(self, tmp_path, monkeypatch):
+    def test_shellgpt_uid_gid_applied_to_scratch(self, tmp_path, monkeypatch):
         self._isolate_env(monkeypatch, tmp_path)
-        monkeypatch.setenv("HERMES_UID", "1000")
-        monkeypatch.setenv("HERMES_GID", "911")
+        monkeypatch.setenv("SHELLGPT_UID", "1000")
+        monkeypatch.setenv("SHELLGPT_GID", "911")
         with patch.object(os, "chown") as mock_chown:
             get_scratch_dir(tmp_path, prune=False)
         mock_chown.assert_called_once_with(tmp_path / "cache" / "scratch", 1000, 911)
@@ -191,13 +191,13 @@ class TestScratchDirPermissionPolicy:
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
 def test_secure_file_skips_chmod_on_canonical_container_signal(tmp_path, monkeypatch):
     """_secure_file skips on the same canonical container signal that apply_secure_dir_policy /
-    get_scratch_dir already honor (one policy implementation in hermes_constants)."""
-    from hermes_cli import config
+    get_scratch_dir already honor (one policy implementation in shellgpt_constants)."""
+    from shellgpt_cli import config
 
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
-    for var in ("HERMES_MANAGED", "HERMES_CONTAINER", "HERMES_SKIP_CHMOD"):
+    monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path / "home"))
+    for var in ("SHELLGPT_MANAGED", "SHELLGPT_CONTAINER", "SHELLGPT_SKIP_CHMOD"):
         monkeypatch.delenv(var, raising=False)
-    monkeypatch.setattr("hermes_constants._detect_container", lambda: True)
+    monkeypatch.setattr("shellgpt_constants._detect_container", lambda: True)
     f = tmp_path / "config.yaml"
     f.write_text("", encoding="utf-8")
     os.chmod(f, 0o640)

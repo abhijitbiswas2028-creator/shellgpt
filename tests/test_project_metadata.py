@@ -54,7 +54,7 @@ def test_lazy_installable_extras_excluded_from_all():
     for extra in lazy_covered_extras:
         offending = [
             spec for spec in all_extra_specs
-            if f"hermes-agent[{extra}]" in spec
+            if f"shellgpt-agent[{extra}]" in spec
         ]
         assert not offending, (
             f"[{extra}] is in [all] but also in LAZY_DEPS. "
@@ -82,7 +82,7 @@ def test_pyproject_pins_match_lazy_deps_pins():
 
     Any package that is exact-pinned in BOTH a pyproject extra and a
     `tools/lazy_deps.py` LAZY_DEPS entry must use the SAME version in both
-    places. When they drift, `hermes update` resolves the pyproject extra
+    places. When they drift, `shellgpt update` resolves the pyproject extra
     pin and downgrades the package to the older version, reopening whatever
     the lazy pin fixed (the aiohttp #31817 case, and the anthropic
     CVE-2026-34450/34452 case found alongside it) — only for the lazy
@@ -122,7 +122,7 @@ def test_pyproject_pins_match_lazy_deps_pins():
     }
     assert not drift, (
         "pyproject extras pins must match tools/lazy_deps.py LAZY_DEPS pins "
-        "for every shared package — otherwise `hermes update` downgrades the "
+        "for every shared package — otherwise `shellgpt update` downgrades the "
         "package below the security-current lazy pin (see #31817). Drift: "
         f"{drift}"
     )
@@ -133,7 +133,7 @@ def test_pyproject_pins_match_lazy_deps_pins():
 
 
 def test_dingtalk_extra_includes_qrcode_for_qr_auth():
-    """DingTalk's QR-code device-flow auth (hermes_cli/dingtalk_auth.py)
+    """DingTalk's QR-code device-flow auth (shellgpt_cli/dingtalk_auth.py)
     needs the qrcode package."""
     optional_dependencies = _load_optional_dependencies()
 
@@ -173,7 +173,7 @@ def test_every_lazy_deps_exact_pin_matches_uv_lock():
 
     Any package that is BOTH exact-pinned in ``tools/lazy_deps.py`` AND
     resolved in the committed uv.lock is a *shared* package: the core
-    install ships the locked version, and the ``hermes update`` lazy-refresh
+    install ships the locked version, and the ``shellgpt update`` lazy-refresh
     pass re-asserts the LAZY_DEPS pin whenever the package is present
     (``active_features()``). If the two disagree, every update churns the
     package — and when the lazy pin is older, it force-DOWNGRADES a version
@@ -205,7 +205,7 @@ def test_every_lazy_deps_exact_pin_matches_uv_lock():
 
     assert not drift, (
         "LAZY_DEPS exact pins must match the uv.lock resolved version for "
-        "every package the core lock also ships — otherwise `hermes update` "
+        "every package the core lock also ships — otherwise `shellgpt update` "
         "churns/downgrades the shared package out from under its other "
         "consumers (#60783, #31817). Bump the pin AND run "
         "`uv lock --upgrade-package <name>` in the same commit. Drift: "

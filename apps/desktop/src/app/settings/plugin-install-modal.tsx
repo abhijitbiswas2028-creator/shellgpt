@@ -34,7 +34,7 @@ import {
 import { $activeGatewayProfile, $profiles, $profileScope, normalizeProfileKey, profileLabel } from '@/store/profile'
 import { $connection } from '@/store/session'
 
-type ProbeResult = Awaited<ReturnType<NonNullable<NonNullable<Window['hermesDesktop']>['probePluginRepo']>>>
+type ProbeResult = Awaited<ReturnType<NonNullable<NonNullable<Window['shellgptDesktop']>['probePluginRepo']>>>
 
 type ProbePhase = 'idle' | 'probing' | 'ready' | 'error'
 
@@ -114,7 +114,7 @@ export function PluginInstallModal() {
       setEnableAgent(payload.enable ?? true)
       setForceReinstall(payload.force ?? false)
 
-      const probeFn = window.hermesDesktop?.probePluginRepo
+      const probeFn = window.shellgptDesktop?.probePluginRepo
 
       if (!probeFn) {
         if (token !== probeToken.current) {
@@ -182,7 +182,7 @@ export function PluginInstallModal() {
       ? m.agentTargetRemote(targetProfileLabel)
       : m.agentTargetLocal(
           targetProfileLabel,
-          targetProfile === 'default' ? '~/.hermes/plugins/' : `~/.hermes/profiles/${targetProfile}/plugins/`
+          targetProfile === 'default' ? '~/.shellgpt/plugins/' : `~/.shellgpt/profiles/${targetProfile}/plugins/`
         )
 
   // A unified package installed into a local backend carries its own desktop
@@ -276,7 +276,7 @@ export function PluginInstallModal() {
           // desktop-plugins/<git-name>/ beside the package copy (#100412). When
           // there is nothing to materialise, nothing was installed. The agent
           // error already says so.
-          const touched = (await window.hermesDesktop?.reconcileDesktopPlugins?.()) ?? []
+          const touched = (await window.shellgptDesktop?.reconcileDesktopPlugins?.()) ?? []
 
           if (agentInstalled || touched.length > 0) {
             successes.push(m.desktopSuccess(probe.agentName ?? request.repo))
@@ -286,7 +286,7 @@ export function PluginInstallModal() {
             await discoverRuntimePlugins()
           }
         } else {
-          const installFn = window.hermesDesktop?.installDesktopPlugin
+          const installFn = window.shellgptDesktop?.installDesktopPlugin
 
           if (!installFn) {
             errors.push(m.desktopUnavailable)

@@ -1,5 +1,5 @@
-import { Box, Text } from '@hermes/ink'
-import { mix } from '@hermes/shared/color'
+import { Box, Text } from '@shellgpt/ink'
+import { mix } from '@shellgpt/shared/color'
 import { useEffect, useState } from 'react'
 
 /**

@@ -5,7 +5,7 @@ import { __resetBackendSkinSync, ingestBackendSkin } from './backend-sync'
 import { skinPref, ThemeProvider, useTheme } from './context'
 import { everforestTheme } from './presets'
 
-// The live-authoring loop: Hermes writes/edits one skin file and every surface
+// The live-authoring loop: ShellGPT writes/edits one skin file and every surface
 // repaints. An in-place edit keeps the NAME — only the palette moves.
 const bloomberg = (foreground: string) => ({
   name: 'bloomberg',
@@ -74,7 +74,7 @@ describe('ThemeProvider ← backend skin sync', () => {
   // name, flattened it to the default, and the connect-time seed (apply: false,
   // by design) never repainted — so the theme "didn't stick" until `/skin`.
   it('paints a persisted backend skin once the connect-time seed makes it resolvable', () => {
-    window.localStorage.setItem('hermes-desktop-theme-v2', 'bloomberg')
+    window.localStorage.setItem('shellgpt-desktop-theme-v2', 'bloomberg')
 
     render(
       <ThemeProvider>
@@ -93,10 +93,10 @@ describe('ThemeProvider ← backend skin sync', () => {
   })
 
   it('uses the local bridge skin when a remote gateway has not connected yet', async () => {
-    const previous = Object.getOwnPropertyDescriptor(window, 'hermesDesktop')
+    const previous = Object.getOwnPropertyDescriptor(window, 'shellgptDesktop')
 
     try {
-      Object.defineProperty(window, 'hermesDesktop', {
+      Object.defineProperty(window, 'shellgptDesktop', {
         configurable: true,
         value: { localSkin: { profile: 'research', skin: bloomberg('#ff9f0a') } }
       })
@@ -121,9 +121,9 @@ describe('ThemeProvider ← backend skin sync', () => {
       window.localStorage.clear()
 
       if (previous) {
-        Object.defineProperty(window, 'hermesDesktop', previous)
+        Object.defineProperty(window, 'shellgptDesktop', previous)
       } else {
-        Reflect.deleteProperty(window, 'hermesDesktop')
+        Reflect.deleteProperty(window, 'shellgptDesktop')
       }
 
       vi.resetModules()
@@ -131,11 +131,11 @@ describe('ThemeProvider ← backend skin sync', () => {
   })
 
   it('keeps a saved desktop appearance ahead of the local bridge fallback', async () => {
-    const previous = Object.getOwnPropertyDescriptor(window, 'hermesDesktop')
+    const previous = Object.getOwnPropertyDescriptor(window, 'shellgptDesktop')
 
     try {
-      window.localStorage.setItem('hermes-desktop-theme-v2', 'everforest')
-      Object.defineProperty(window, 'hermesDesktop', {
+      window.localStorage.setItem('shellgpt-desktop-theme-v2', 'everforest')
+      Object.defineProperty(window, 'shellgptDesktop', {
         configurable: true,
         value: { localSkin: { profile: 'research', skin: bloomberg('#ff9f0a') } }
       })
@@ -149,15 +149,15 @@ describe('ThemeProvider ← backend skin sync', () => {
         </FreshThemeProvider>
       )
 
-      expect(window.document.documentElement.dataset.hermesTheme).toBe('everforest')
+      expect(window.document.documentElement.dataset.shellgptTheme).toBe('everforest')
     } finally {
       cleanup()
       window.localStorage.clear()
 
       if (previous) {
-        Object.defineProperty(window, 'hermesDesktop', previous)
+        Object.defineProperty(window, 'shellgptDesktop', previous)
       } else {
-        Reflect.deleteProperty(window, 'hermesDesktop')
+        Reflect.deleteProperty(window, 'shellgptDesktop')
       }
 
       vi.resetModules()

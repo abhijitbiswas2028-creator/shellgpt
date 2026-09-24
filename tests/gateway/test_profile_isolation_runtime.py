@@ -2,14 +2,14 @@
 
 In runtimes that serve every profile from one OS process (the desktop
 ``tui_gateway``), the profile boundary is the context-local
-``_HERMES_HOME_OVERRIDE`` ContextVar, not the process environment.  State that
+``_SHELLGPT_HOME_OVERRIDE`` ContextVar, not the process environment.  State that
 escapes the request call stack — import-time-frozen path constants, direct
 ``os.environ`` reads, or worker threads that don't inherit the request context —
 silently reverts to the launch/default profile and leaks one profile's data
 into another.
 
 These tests drive each previously-leaking site under override A then override B
-with real temp HERMES_HOME directories (no mocks) and assert the *active*
+with real temp SHELLGPT_HOME directories (no mocks) and assert the *active*
 profile's path is used.  They are the productionized form of the manual smoke
 probes used to confirm the bug class.
 """
@@ -18,16 +18,16 @@ from pathlib import Path
 
 import pytest
 
-from hermes_constants import (
-    get_hermes_home,
-    reset_hermes_home_override,
-    set_hermes_home_override,
+from shellgpt_constants import (
+    get_shellgpt_home,
+    reset_shellgpt_home_override,
+    set_shellgpt_home_override,
 )
 
 
 @pytest.fixture
 def two_profiles(tmp_path):
-    """Two distinct profile HERMES_HOME dirs with the dir skeleton created."""
+    """Two distinct profile SHELLGPT_HOME dirs with the dir skeleton created."""
     prof_a = tmp_path / "profA"
     prof_b = tmp_path / "profB"
     for p in (prof_a, prof_b):
@@ -39,11 +39,11 @@ def two_profiles(tmp_path):
 
 def _under_override(home: Path, fn):
     """Run ``fn`` with the profile override set to ``home`` and reset after."""
-    token = set_hermes_home_override(str(home))
+    token = set_shellgpt_home_override(str(home))
     try:
         return fn()
     finally:
-        reset_hermes_home_override(token)
+        reset_shellgpt_home_override(token)
 
 
 # ---------------------------------------------------------------------------
@@ -101,8 +101,8 @@ class TestRichSentStorePathResolution:
 
     def test_store_path_follows_override(self, two_profiles, monkeypatch):
         prof_a, prof_b = two_profiles
-        # Ensure no ambient HERMES_HOME env masks the test.
-        monkeypatch.delenv("HERMES_HOME", raising=False)
+        # Ensure no ambient SHELLGPT_HOME env masks the test.
+        monkeypatch.delenv("SHELLGPT_HOME", raising=False)
         import gateway.rich_sent_store as rss
 
         b_seen = _under_override(prof_b, lambda: rss._store_path())
@@ -210,7 +210,7 @@ class TestThreadContextPropagation:
         """model_tools._run_async's worker-thread branch must keep the override.
 
         This is the generic sync->async bridge for every async tool; if it
-        leaks, every async tool that resolves get_hermes_home() leaks.
+        leaks, every async tool that resolves get_shellgpt_home() leaks.
         """
         import asyncio
 
@@ -218,7 +218,7 @@ class TestThreadContextPropagation:
         import model_tools
 
         async def reads_home():
-            return str(get_hermes_home())
+            return str(get_shellgpt_home())
 
         async def driver():
             # Inside a running loop, _run_async spawns a worker thread + loop.

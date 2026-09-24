@@ -26,12 +26,12 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate_env(tmp_path, monkeypatch):
-    hermes_home = tmp_path / ".hermes"
-    hermes_home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    shellgpt_home = tmp_path / ".shellgpt"
+    shellgpt_home.mkdir()
+    monkeypatch.setenv("SHELLGPT_HOME", str(shellgpt_home))
     monkeypatch.delenv("SECURITY_GUIDANCE_BLOCK", raising=False)
     monkeypatch.delenv("SECURITY_GUIDANCE_DISABLE", raising=False)
-    yield hermes_home
+    yield shellgpt_home
 
 
 # ---------------------------------------------------------------------------
@@ -56,19 +56,19 @@ def _load_patterns():
 def _load_plugin_init():
     """Import the plugin __init__.py with patterns.py as a sibling."""
     plugin_dir = _repo_root() / "plugins" / "security-guidance"
-    if "hermes_plugins" not in sys.modules:
-        ns = types.ModuleType("hermes_plugins")
+    if "shellgpt_plugins" not in sys.modules:
+        ns = types.ModuleType("shellgpt_plugins")
         ns.__path__ = []
-        sys.modules["hermes_plugins"] = ns
+        sys.modules["shellgpt_plugins"] = ns
     spec = importlib.util.spec_from_file_location(
-        "hermes_plugins.security_guidance",
+        "shellgpt_plugins.security_guidance",
         plugin_dir / "__init__.py",
         submodule_search_locations=[str(plugin_dir)],
     )
     mod = importlib.util.module_from_spec(spec)
-    mod.__package__ = "hermes_plugins.security_guidance"
+    mod.__package__ = "shellgpt_plugins.security_guidance"
     mod.__path__ = [str(plugin_dir)]
-    sys.modules["hermes_plugins.security_guidance"] = mod
+    sys.modules["shellgpt_plugins.security_guidance"] = mod
     spec.loader.exec_module(mod)
     return mod
 

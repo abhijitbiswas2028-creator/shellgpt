@@ -9,20 +9,20 @@ from typing import Any, Dict, List
 from .constants import QQBOT_VERSION
 
 
-def _get_hermes_version() -> str:
-    """Return the hermes-agent package version, or 'dev' if unavailable."""
+def _get_shellgpt_version() -> str:
+    """Return the shellgpt-agent package version, or 'dev' if unavailable."""
     try:
         from importlib.metadata import version
-        return version("hermes-agent")
+        return version("shellgpt-agent")
     except Exception:
         return "dev"
 
 
 def build_user_agent() -> str:
-    """``QQBotAdapter/<qqbot_version> (Python/<py_version>; <os>; Hermes/<hermes_version>)``."""
+    """``QQBotAdapter/<qqbot_version> (Python/<py_version>; <os>; ShellGPT/<shellgpt_version>)``."""
     v = sys.version_info
     return (f"QQBotAdapter/{QQBOT_VERSION} (Python/{v.major}.{v.minor}.{v.micro}; "
-            f"{platform.system().lower()}; Hermes/{_get_hermes_version()})")
+            f"{platform.system().lower()}; ShellGPT/{_get_shellgpt_version()})")
 
 
 def get_api_headers() -> Dict[str, str]:

@@ -1,6 +1,6 @@
-import { compactNumber } from '@hermes/shared'
+import { compactNumber } from '@shellgpt/shared'
 
-import { getUsageAnalytics, type McpTestResult, type ProfileScope } from '@/hermes'
+import { getUsageAnalytics, type McpTestResult, type ProfileScope } from '@/shellgpt'
 import type { Translations } from '@/i18n'
 import { estimateServerTokens, serverUsageCount } from '@/lib/mcp-cost'
 import { NEEDS_AUTH_RE } from '@/lib/mcp-probe-cache'

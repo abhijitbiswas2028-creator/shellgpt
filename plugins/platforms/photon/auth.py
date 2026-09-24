@@ -3,7 +3,7 @@
 Management calls hit ``https://app.photon.codes/api/...`` (OAuth 2.0 device flow, Bearer)
 like the official CLI. The dashboard project ``id`` *is* the Spectrum Cloud project id and
 Spectrum is always provisioned at create-time; the sidecar authenticates with
-``(id, projectSecret)``. Storage: runtime SDK creds -> ``~/.hermes/.env``; management
+``(id, projectSecret)``. Storage: runtime SDK creds -> ``~/.shellgpt/.env``; management
 metadata -> ``auth.json`` under ``credential_pool.photon`` (device token), ``photon_project``
 (ids + secret for offline status) and ``photon_user`` (numbers).
 """
@@ -23,11 +23,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 try:
     import httpx
-except ImportError:  # pragma: no cover - httpx is a hermes dependency
+except ImportError:  # pragma: no cover - httpx is a shellgpt dependency
     httpx = None  # type: ignore[assignment]
 
 from gateway.platforms._shared import get_scoped_secret as _get_scoped_secret
-from hermes_constants import get_hermes_home
+from shellgpt_constants import get_shellgpt_home
 import contextlib
 
 logger = logging.getLogger(__name__)
@@ -38,22 +38,22 @@ class PhotonDashboardAuthError(RuntimeError):
 
 
 # Hosted Photon allowlists device clients (unregistered → 400 invalid_client); use Photon's
-# published CLI client until Hermes gets its own client_id.
+# published CLI client until ShellGPT gets its own client_id.
 DEFAULT_CLIENT_ID = "photon-cli"
 DEFAULT_SCOPE = "openid profile email"
 DEFAULT_DASHBOARD_HOST = "https://app.photon.codes"
 DEFAULT_SPECTRUM_HOST = "https://spectrum.photon.codes"
-DEFAULT_PROJECT_NAME = "Hermes Agent"
+DEFAULT_PROJECT_NAME = "ShellGPT Agent"
 DEFAULT_POLL_INTERVAL = 5  # RFC 8628 polling defaults; Photon's `interval` / `expires_in` win
 DEFAULT_POLL_TIMEOUT = 1800
 E164_RE = re.compile(r"^\+[1-9]\d{6,14}$")
 
 
-# -- auth.json helpers (shares the file with the rest of hermes-agent) ------------
+# -- auth.json helpers (shares the file with the rest of shellgpt-agent) ------------
 
 def _auth_json_path() -> Path:
-    """The active profile's ``auth.json`` (shared with the rest of hermes-agent)."""
-    return get_hermes_home() / "auth.json"
+    """The active profile's ``auth.json`` (shared with the rest of shellgpt-agent)."""
+    return get_shellgpt_home() / "auth.json"
 
 
 def _load_auth() -> Dict[str, Any]:
@@ -102,7 +102,7 @@ def _pool_first(auth: Dict[str, Any], key: str) -> Any:
 
 def _store_pool_record(key: str, record: Dict[str, Any]) -> None:
     """Replace ``credential_pool.<key>`` with ``[record]`` under the cross-process lock."""
-    from hermes_cli.auth import _auth_store_lock
+    from shellgpt_cli.auth import _auth_store_lock
     with _auth_store_lock():
         auth = _load_auth()
         auth.setdefault("credential_pool", {})[key] = [record]
@@ -200,12 +200,12 @@ def store_user_numbers(
 
 
 def _persist_runtime_env(spectrum_project_id: str, project_secret: str) -> None:
-    """Write the SDK creds to ``~/.hermes/.env`` (secret never bound to a printable local
+    """Write the SDK creds to ``~/.shellgpt/.env`` (secret never bound to a printable local
     in a caller — CodeQL clean flow)."""
     try:
-        from hermes_cli.config import save_env_value
+        from shellgpt_cli.config import save_env_value
     except ImportError:
-        logger.warning("photon: hermes_cli.config unavailable — skipping .env write")
+        logger.warning("photon: shellgpt_cli.config unavailable — skipping .env write")
         return
     try:
         save_env_value("PHOTON_PROJECT_ID", spectrum_project_id)
@@ -658,7 +658,7 @@ def _configured_operator_phone() -> Optional[str]:
 
 def _get_config_env_value(key: str) -> Optional[str]:
     try:
-        from hermes_cli.config import get_env_value
+        from shellgpt_cli.config import get_env_value
     except Exception:
         return os.getenv(key)
     return get_env_value(key)
@@ -704,11 +704,11 @@ def print_credential_summary(emit: Any = print) -> None:
         "Photon iMessage status",
         "──────────────────────",
         "  device token        : " + (
-            "✓ stored" if load_photon_token() else "✗ missing (run `hermes photon setup`)"),
+            "✓ stored" if load_photon_token() else "✗ missing (run `shellgpt photon setup`)"),
         "  project id          : " + (sid if sid else "✗ missing"),
         "  project secret      : " + ("✓ stored" if sec else "✗ missing"),
-        "  my number           : " + (phone if phone else "✗ missing (run `hermes photon setup --phone ...`)"),
-        "  assigned number     : " + (assigned if assigned else "✗ missing (run `hermes photon setup`)")]
+        "  my number           : " + (phone if phone else "✗ missing (run `shellgpt photon setup --phone ...`)"),
+        "  assigned number     : " + (assigned if assigned else "✗ missing (run `shellgpt photon setup`)")]
     emit("\n".join(rows))
 
 
@@ -722,7 +722,7 @@ def credential_summary() -> Dict[str, str]:
     def _present_token() -> str:
         return (
             "✓ stored" if load_photon_token()
-            else "✗ missing (run `hermes photon setup`)"
+            else "✗ missing (run `shellgpt photon setup`)"
         )
 
     def _present_project_id() -> str:
@@ -735,11 +735,11 @@ def credential_summary() -> Dict[str, str]:
 
     def _present_phone() -> str:
         phone, _assigned = load_user_numbers()
-        return phone or "✗ missing (run `hermes photon setup --phone ...`)"
+        return phone or "✗ missing (run `shellgpt photon setup --phone ...`)"
 
     def _present_assigned_phone() -> str:
         _phone, assigned = load_user_numbers()
-        return assigned or "✗ missing (run `hermes photon setup`)"
+        return assigned or "✗ missing (run `shellgpt photon setup`)"
 
     return {
         "device_token": _present_token(),

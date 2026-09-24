@@ -19,30 +19,30 @@ import pytest
 
 
 @pytest.fixture
-def fake_hermes(tmp_path, monkeypatch):
-    """Build a two-profile Hermes layout and point HERMES_HOME at
-    the hermes-security profile (matching the original-incident shape).
+def fake_shellgpt(tmp_path, monkeypatch):
+    """Build a two-profile ShellGPT layout and point SHELLGPT_HOME at
+    the shellgpt-security profile (matching the original-incident shape).
     """
-    root = tmp_path / "fake-hermes"
+    root = tmp_path / "fake-shellgpt"
     (root / "skills" / "shared-skill").mkdir(parents=True)
     (root / "skills" / "shared-skill" / "SKILL.md").write_text(
         "---\nname: shared-skill\ndescription: default copy.\n---\n"
     )
 
-    sec_home = root / "profiles" / "hermes-security"
+    sec_home = root / "profiles" / "shellgpt-security"
     (sec_home / "skills").mkdir(parents=True)
 
     coder_home = root / "profiles" / "coder"
     (coder_home / "skills").mkdir(parents=True)
 
-    monkeypatch.setenv("HERMES_HOME", str(sec_home))
+    monkeypatch.setenv("SHELLGPT_HOME", str(sec_home))
 
-    import hermes_constants
-    monkeypatch.setattr(hermes_constants, "get_default_hermes_root", lambda: root)
+    import shellgpt_constants
+    monkeypatch.setattr(shellgpt_constants, "get_default_shellgpt_root", lambda: root)
 
     import agent.file_safety as fs
-    monkeypatch.setattr(fs, "_hermes_home_path", lambda: sec_home)
-    monkeypatch.setattr(fs, "_hermes_root_path", lambda: root)
+    monkeypatch.setattr(fs, "_shellgpt_home_path", lambda: sec_home)
+    monkeypatch.setattr(fs, "_shellgpt_root_path", lambda: root)
 
     return {
         "root": root,
@@ -58,13 +58,13 @@ def fake_hermes(tmp_path, monkeypatch):
 
 class TestWriteFileCrossProfileGuard:
 
-    def test_cross_profile_write_allowed_guard_retired(self, fake_hermes):
+    def test_cross_profile_write_allowed_guard_retired(self, fake_shellgpt):
         """Guard RETIRED (maintainer decision): profiles are not isolated —
         the same OS user owns every profile dir and the terminal tool
         always could write them. Cross-profile writes now succeed; the
         system prompt's profile hint is the only steering."""
         from tools.file_tools import read_file_tool, write_file_tool
-        target = fake_hermes["root"] / "skills" / "shared-skill" / "SKILL.md"
+        target = fake_shellgpt["root"] / "skills" / "shared-skill" / "SKILL.md"
         assert not json.loads(read_file_tool(str(target))).get("error")
         result_json = write_file_tool(str(target), "cross-profile write, allowed")
         result = json.loads(result_json)
@@ -81,9 +81,9 @@ class TestWriteFileCrossProfileGuard:
 
 class TestPatchCrossProfileGuard:
 
-    def test_cross_profile_patch_bypass(self, fake_hermes):
+    def test_cross_profile_patch_bypass(self, fake_shellgpt):
         from tools.file_tools import patch_tool
-        target = fake_hermes["root"] / "skills" / "shared-skill" / "SKILL.md"
+        target = fake_shellgpt["root"] / "skills" / "shared-skill" / "SKILL.md"
         result_json = patch_tool(
             mode="replace",
             path=str(target),
@@ -95,13 +95,13 @@ class TestPatchCrossProfileGuard:
         assert not result.get("error"), f"cross_profile still handler-accepted (compat): {result}"
         assert "user-directed update." in target.read_text()
 
-    def test_v4a_patch_writes_through_guard_retired(self, fake_hermes):
+    def test_v4a_patch_writes_through_guard_retired(self, fake_shellgpt):
         """V4A patch to a cross-profile path succeeds (guard retired).
         V4A patches embed target paths in the patch body; path extraction
         for the surviving mirror guards still runs, but cross-profile
         targets are no longer refused."""
         from tools.file_tools import patch_tool
-        target = fake_hermes["root"] / "skills" / "shared-skill" / "SKILL.md"
+        target = fake_shellgpt["root"] / "skills" / "shared-skill" / "SKILL.md"
         v4a = (
             "*** Begin Patch\n"
             f"*** Update File: {target}\n"
@@ -130,13 +130,13 @@ class TestSkillManageCrossProfileErrorUX:
         )
 
     def test_error_names_other_profile_when_skill_lives_there(
-        self, fake_hermes, monkeypatch
+        self, fake_shellgpt, monkeypatch
     ):
         """The original incident shape — model expects 'foo' in active
         profile, but 'foo' lives in default. Error must point at default."""
-        self._make_skill_in_profile(fake_hermes["root"], "default-only-skill")
+        self._make_skill_in_profile(fake_shellgpt["root"], "default-only-skill")
 
-        # Re-import the module so SKILLS_DIR picks up HERMES_HOME (set in
+        # Re-import the module so SKILLS_DIR picks up SHELLGPT_HOME (set in
         # the fixture). Skill_manager_tool computes SKILLS_DIR at import.
         import importlib
         import tools.skill_manager_tool
@@ -144,12 +144,12 @@ class TestSkillManageCrossProfileErrorUX:
         from tools.skill_manager_tool import _skill_not_found_error
 
         err = _skill_not_found_error("default-only-skill")
-        assert "not found in active profile 'hermes-security'" in err
+        assert "not found in active profile 'shellgpt-security'" in err
         assert "default" in err
 
 
     def test_genuinely_missing_skill_keeps_helpful_hint(
-        self, fake_hermes, monkeypatch
+        self, fake_shellgpt, monkeypatch
     ):
         """When no profile has the skill, error falls back to skills_list hint."""
         import importlib
@@ -158,7 +158,7 @@ class TestSkillManageCrossProfileErrorUX:
         from tools.skill_manager_tool import _skill_not_found_error
 
         err = _skill_not_found_error("totally-imaginary-skill")
-        assert "not found in active profile 'hermes-security'" in err
+        assert "not found in active profile 'shellgpt-security'" in err
         assert "skills_list" in err
 
 

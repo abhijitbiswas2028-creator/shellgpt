@@ -41,18 +41,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 @pytest.fixture
 def cron_env(tmp_path, monkeypatch):
     """Isolated cron env + a recurring no_agent interval job."""
-    hermes_home = tmp_path / ".hermes"
-    hermes_home.mkdir()
-    (hermes_home / "cron").mkdir()
-    (hermes_home / "cron" / "output").mkdir()
-    (hermes_home / "scripts").mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    shellgpt_home = tmp_path / ".shellgpt"
+    shellgpt_home.mkdir()
+    (shellgpt_home / "cron").mkdir()
+    (shellgpt_home / "cron" / "output").mkdir()
+    (shellgpt_home / "scripts").mkdir()
+    monkeypatch.setenv("SHELLGPT_HOME", str(shellgpt_home))
 
     import cron.jobs as jobs_mod
-    monkeypatch.setattr(jobs_mod, "HERMES_DIR", hermes_home)
-    monkeypatch.setattr(jobs_mod, "CRON_DIR", hermes_home / "cron")
-    monkeypatch.setattr(jobs_mod, "JOBS_FILE", hermes_home / "cron" / "jobs.json")
-    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", hermes_home / "cron" / "output")
+    monkeypatch.setattr(jobs_mod, "SHELLGPT_DIR", shellgpt_home)
+    monkeypatch.setattr(jobs_mod, "CRON_DIR", shellgpt_home / "cron")
+    monkeypatch.setattr(jobs_mod, "JOBS_FILE", shellgpt_home / "cron" / "jobs.json")
+    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", shellgpt_home / "cron" / "output")
 
     job = jobs_mod.create_job(
         prompt="probe",
@@ -60,9 +60,9 @@ def cron_env(tmp_path, monkeypatch):
         no_agent=True,
         script="probe.py",
     )
-    script = hermes_home / "scripts" / "probe.py"
+    script = shellgpt_home / "scripts" / "probe.py"
     script.write_text("print('ok')\n")
-    return {"home": hermes_home, "job_id": job["id"]}
+    return {"home": shellgpt_home, "job_id": job["id"]}
 
 
 def _setup(cron_env, monkeypatch):
@@ -72,7 +72,7 @@ def _setup(cron_env, monkeypatch):
 
     env = cron_env
     monkeypatch.setattr(E, "EXECUTIONS_FILE", env["home"] / "cron" / "executions.db")
-    monkeypatch.setattr(S, "_hermes_home", env["home"])
+    monkeypatch.setattr(S, "_shellgpt_home", env["home"])
     return S, E, J, env
 
 

@@ -1,10 +1,10 @@
-import type { GatewayWsUrlResult } from '@hermes/shared'
-import type { HermesSkin } from '@hermes/shared/skin'
-import type { TranslucencyState } from '@hermes/shared/translucency'
+import type { GatewayWsUrlResult } from '@shellgpt/shared'
+import type { ShellGPTSkin } from '@shellgpt/shared/skin'
+import type { TranslucencyState } from '@shellgpt/shared/translucency'
 
 import type { ScreenshotApi } from '../electron/command-screenshot-types'
 import type { HudModifierApi } from '../electron/hud-modifier-types'
-import type { HermesNotification } from '../electron/notification-types'
+import type { ShellGPTNotification } from '../electron/notification-types'
 import type { PoolLimits } from '../electron/pool-limits'
 
 import type { WakeIndicatorState } from './lib/wake-indicator'
@@ -20,21 +20,21 @@ export {}
 
 declare global {
   interface Window {
-    hermesDesktop: {
+    shellgptDesktop: {
       // Resolve a backend connection. Omit `profile` (or pass the primary) for
       // the window's backend; pass a named profile to lazily spawn/reuse that
       // profile's backend from the pool.
       getConnection: (
         profile?: string | null,
         opts?: { priority?: 'foreground' | 'background' }
-      ) => Promise<HermesConnection>
+      ) => Promise<ShellGPTConnection>
       // Registry-scoped backend resolution: dial (connectionId, profile). An
       // empty/local connectionId delegates to the legacy getConnection path.
       getConnectionFor?: (payload: {
         connectionId?: null | string
         profile?: null | string
         priority?: 'foreground' | 'background'
-      }) => Promise<HermesConnection>
+      }) => Promise<ShellGPTConnection>
       // Registry-scoped fresh WS URL (same result contract as getGatewayWsUrl).
       getGatewayWsUrlFor?: (payload: {
         connectionId?: null | string
@@ -76,7 +76,7 @@ declare global {
         sessionId: string,
         opts?: { profile?: null | string; watch?: boolean }
       ) => Promise<{ ok: boolean; error?: string }>
-      // Resume this session in the user's own terminal emulator (`hermes --tui
+      // Resume this session in the user's own terminal emulator (`shellgpt --tui
       // --resume <id>`) — the external terminal, not the in-app pane.
       openSessionInTerminal: (
         sessionId: string,
@@ -96,7 +96,7 @@ declare global {
       // peers — so N open windows don't all fire the same cue.
       claimAmbientCue: (key: string) => Promise<boolean>
       // Renderer-drawn min/max/close for WSLg (`custom` true there only), sent
-      // over hermes:window-control; Electron/OS chrome owns them elsewhere.
+      // over shellgpt:window-control; Electron/OS chrome owns them elsewhere.
       windowControls: {
         custom: boolean
         minimize: () => void
@@ -238,7 +238,7 @@ declare global {
         // Drain/update/restore one Desktop-managed SSH install. External URL
         // and cloud sources are refused without touching their processes.
         updateManaged?: (id: string) => Promise<DesktopManagedConnectionUpdateResult>
-        // Fan out `hermes update` to every eligible registered connection;
+        // Fan out `shellgpt update` to every eligible registered connection;
         // cloud entries are skipped (platform-managed), each row independent.
         // excludeIds skips connections the caller updates through another
         // path (the everything-update flow's active backend + local client).
@@ -258,7 +258,7 @@ declare global {
       probeConnectionConfig: (remoteUrl: string) => Promise<DesktopConnectionProbeResult>
       oauthLoginConnectionConfig: (remoteUrl: string) => Promise<DesktopOauthLoginResult>
       oauthLogoutConnectionConfig: (remoteUrl: string) => Promise<DesktopOauthLogoutResult>
-      // Hermes Cloud: one portal login powers discovery + silent per-agent
+      // ShellGPT Cloud: one portal login powers discovery + silent per-agent
       // sign-in (cloud-auto-discovery Phase 3).
       cloud: {
         status: () => Promise<DesktopCloudStatus>
@@ -276,12 +276,12 @@ declare global {
         // replacing an explicit default route.
         remember: (name: string | null) => Promise<DesktopActiveProfile>
         // Persists the desktop's profile choice and relaunches the local
-        // backend under the new HERMES_HOME (reloads the window). Pass null to
+        // backend under the new SHELLGPT_HOME (reloads the window). Pass null to
         // clear the preference.
         set: (name: string | null) => Promise<DesktopActiveProfile>
       }
-      api: <T>(request: HermesApiRequest) => Promise<T>
-      notify: (payload: HermesNotification) => Promise<boolean>
+      api: <T>(request: ShellGPTApiRequest) => Promise<T>
+      notify: (payload: ShellGPTNotification) => Promise<boolean>
       requestMicrophoneAccess: () => Promise<boolean>
       /** read_window_below tool: metadata for the OS window directly underneath this one (never pixels). */
       readWindowBelow?: () => Promise<{
@@ -303,12 +303,12 @@ declare global {
         get: () => Promise<{ defaultMaxMb: number; maxBytes: number; maxMb: number }>
         set: (maxMb: number) => Promise<{ defaultMaxMb: number; maxBytes: number; maxMb: number }>
       }
-      readFileText: (filePath: string) => Promise<HermesReadFileTextResult>
+      readFileText: (filePath: string) => Promise<ShellGPTReadFileTextResult>
       /** Full-source read for runtime desktop plugins (readFileText truncates
        *  at the 512 KiB preview cap). Absent on older shells — callers fall
        *  back to readFileText and must reject a `truncated` result. */
-      readPluginSource?: (filePath: string) => Promise<HermesReadFileTextResult>
-      selectPaths: (options?: HermesSelectPathsOptions) => Promise<string[]>
+      readPluginSource?: (filePath: string) => Promise<ShellGPTReadFileTextResult>
+      selectPaths: (options?: ShellGPTSelectPathsOptions) => Promise<string[]>
       /** Native save dialog; returns the chosen path or null on cancel. */
       selectSavePath?: (options?: {
         defaultPath?: string
@@ -355,15 +355,15 @@ declare global {
       savePastedText: (text: string) => Promise<string>
       saveClipboardImage: () => Promise<string>
       getPathForFile: (file: File) => string
-      normalizePreviewTarget: (target: string, baseDir?: string) => Promise<HermesPreviewTarget | null>
-      watchPreviewFile: (url: string) => Promise<HermesPreviewWatch>
+      normalizePreviewTarget: (target: string, baseDir?: string) => Promise<ShellGPTPreviewTarget | null>
+      watchPreviewFile: (url: string) => Promise<ShellGPTPreviewWatch>
       /** Watch a directory for entry churn (disk-plugin door); same watcher
        *  registry + onPreviewFileChanged channel as watchPreviewFile. Optional:
        *  older Electron shells predate it and fall back to the readdir poll. */
-      watchDirectory?: (dir: string) => Promise<HermesPreviewWatch>
+      watchDirectory?: (dir: string) => Promise<ShellGPTPreviewWatch>
       stopPreviewFileWatch: (id: string) => Promise<boolean>
-      setActiveWork?: (payload: HermesActiveWork) => void
-      setTitleBarTheme?: (payload: HermesTitleBarTheme) => void
+      setActiveWork?: (payload: ShellGPTActiveWork) => void
+      setTitleBarTheme?: (payload: ShellGPTTitleBarTheme) => void
       setNativeTheme?: (mode: 'dark' | 'light' | 'system') => void
       /** Main-process fact: this OS can back glass with a native material. */
       glassSupported?: boolean
@@ -373,13 +373,13 @@ declare global {
        *  local-models GUI surfaces. Absent/false = every local surface hides. */
       localModelsEnabled?: boolean
       /** Launch flag: the Nous free tier is on for this launch
-       *  (HERMES_GUEST_ONBOARDING=1 or --guest-onboarding). Read-only fact the
+       *  (SHELLGPT_GUEST_ONBOARDING=1 or --guest-onboarding). Read-only fact the
        *  main process also stamps onto every backend it spawns. */
       guestOnboardingEnabled?: boolean
       /** Sanitized local `display.skin`, available before any gateway connects. */
-      localSkin?: { profile: string; skin: HermesSkin } | null
-      /** Launch flag: skip the first-run film (HERMES_SKIP_INTRO=1 or
-       *  --skip-intro) so a fresh HERMES_HOME lands on the guided chat. */
+      localSkin?: { profile: string; skin: ShellGPTSkin } | null
+      /** Launch flag: skip the first-run film (SHELLGPT_SKIP_INTRO=1 or
+       *  --skip-intro) so a fresh SHELLGPT_HOME lands on the guided chat. */
       skipIntro?: boolean
       setTranslucency?: (payload: TranslucencyState) => void
       setKeepAwake?: (on: boolean) => void
@@ -442,17 +442,17 @@ declare global {
         message: string
         componentStack: string
       }) => void
-      readDir: (path: string) => Promise<HermesReadDirResult>
+      readDir: (path: string) => Promise<ShellGPTReadDirResult>
       gitRoot?: (path: string) => Promise<string | null>
       // Reveal a path in the OS file manager (Finder / Explorer).
       revealPath?: (path: string) => Promise<boolean>
       // Open a DIRECTORY (created if missing) in the OS file manager.
       openDir?: (path: string) => Promise<{ ok: boolean; error?: string }>
-      // Local Desktop runtime-plugin root (<HERMES_HOME>/desktop-plugins),
+      // Local Desktop runtime-plugin root (<SHELLGPT_HOME>/desktop-plugins),
       // resolved by Electron independently of the connected backend (#66899).
       // Created on demand; returns the normalized absolute path.
       desktopPluginsRoot?: () => Promise<string>
-      /** LOCAL `<HERMES_HOME>/logs` (profile-aware) — error card "Open Logs". */
+      /** LOCAL `<SHELLGPT_HOME>/logs` (profile-aware) — error card "Open Logs". */
       logsRoot?: () => Promise<string>
       /** Re-copy unified packages' desktop halves into the app-level root; returns touched paths. */
       reconcileDesktopPlugins?: () => Promise<string[]>
@@ -464,7 +464,7 @@ declare global {
       trashPath?: (path: string) => Promise<boolean>
       // Git-driven worktree management for the "Start work" flow.
       git?: {
-        worktreeList: (repoPath: string) => Promise<HermesGitWorktree[]>
+        worktreeList: (repoPath: string) => Promise<ShellGPTGitWorktree[]>
         worktreeAdd: (
           repoPath: string,
           options?: { name?: string; branch?: string; base?: string; existingBranch?: string }
@@ -477,25 +477,25 @@ declare global {
         branchSwitch: (repoPath: string, branch: string) => Promise<{ branch: string }>
         // The local branches, plus the remote-tracking refs that have no local
         // branch, for the "convert a branch into a worktree" picker.
-        branchList: (repoPath: string) => Promise<HermesGitBranch[]>
+        branchList: (repoPath: string) => Promise<ShellGPTGitBranch[]>
         // Local + remote-tracking branches for the "base branch" picker in the
         // new-worktree dialog. The remote default (origin/HEAD) is flagged so
         // the UI can preselect it.
-        baseBranchList: (repoPath: string) => Promise<HermesGitBaseBranch[]>
+        baseBranchList: (repoPath: string) => Promise<ShellGPTGitBaseBranch[]>
         // Compact working-tree status for the composer coding rail. Null on a
         // non-repo / remote backend (where the Electron probe can't run).
-        repoStatus: (repoPath: string) => Promise<HermesRepoStatus | null>
+        repoStatus: (repoPath: string) => Promise<ShellGPTRepoStatus | null>
         // Working-tree-vs-HEAD unified diff for one file (the preview's diff
         // view). Empty string when the file is unchanged or not in a repo.
         fileDiff: (repoPath: string, filePath: string) => Promise<string>
         // Codex-style review pane: changed files per scope, per-file diff, and
         // stage / unstage / revert.
         review: {
-          list: (repoPath: string, scope: HermesReviewScope, baseRef?: null | string) => Promise<HermesReviewList>
+          list: (repoPath: string, scope: ShellGPTReviewScope, baseRef?: null | string) => Promise<ShellGPTReviewList>
           diff: (
             repoPath: string,
             filePath: string,
-            scope: HermesReviewScope,
+            scope: ShellGPTReviewScope,
             baseRef?: null | string,
             staged?: boolean
           ) => Promise<string>
@@ -508,11 +508,11 @@ declare global {
           // commit message. Reads only; empty strings off-repo.
           commitContext: (repoPath: string) => Promise<{ diff: string; recent: string }>
           push: (repoPath: string) => Promise<{ ok: boolean }>
-          shipInfo: (repoPath: string) => Promise<HermesReviewShipInfo>
+          shipInfo: (repoPath: string) => Promise<ShellGPTReviewShipInfo>
           // The PR on each of the given branches — plus any known only by
           // number — for badging a list of sessions in one request instead of
           // one `pr view` per checkout.
-          prList: (repoPath: string, branches: string[], numbers?: number[]) => Promise<HermesRepoPullRequests>
+          prList: (repoPath: string, branches: string[], numbers?: number[]) => Promise<ShellGPTRepoPullRequests>
           createPr: (repoPath: string) => Promise<{ url: string }>
         }
         // Repo-first discovery: scan bounded roots for git repos (depth-capped).
@@ -529,9 +529,9 @@ declare global {
         cwd: (id: string) => Promise<string | null>
         dispose: (id: string) => Promise<boolean>
         onData: (id: string, callback: (payload: string) => void) => () => void
-        onExit: (id: string, callback: (payload: HermesTerminalExit) => void) => () => void
+        onExit: (id: string, callback: (payload: ShellGPTTerminalExit) => void) => () => void
         resize: (id: string, size: { cols: number; rows: number }) => Promise<boolean>
-        start: (options?: { cols?: number; cwd?: string; rows?: number }) => Promise<HermesTerminalSession>
+        start: (options?: { cols?: number; cwd?: string; rows?: number }) => Promise<ShellGPTTerminalSession>
         write: (id: string, data: string) => Promise<boolean>
       }
       reachPreviewUrl?: (url: string) => Promise<string>
@@ -568,14 +568,14 @@ declare global {
       /** Delete a STANDALONE desktop plugin folder (`<desktop-plugins root>/<name>`);
        *  Electron re-checks containment and refuses unified-package halves. */
       removeDesktopPlugin?: (payload: { name: string }) => Promise<{ ok: boolean; path?: string; error?: string }>
-      onWindowStateChanged?: (callback: (payload: HermesWindowState) => void) => () => void
+      onWindowStateChanged?: (callback: (payload: ShellGPTWindowState) => void) => () => void
       onFocusSession?: (callback: (sessionId: string) => void) => () => void
       onNotificationAction?: (callback: (payload: { actionId: string; sessionId?: string }) => void) => () => void
       /** Plugin (and other session-less) notification body/action activation. */
       onNotificationActivate?: (
         callback: (payload: { actionId?: string; activate?: string; notifyId?: string; tag?: string }) => void
       ) => () => void
-      onPreviewFileChanged: (callback: (payload: HermesPreviewFileChanged) => void) => () => void
+      onPreviewFileChanged: (callback: (payload: ShellGPTPreviewFileChanged) => void) => () => void
       onBackendExit: (callback: (payload: BackendExit) => void) => () => void
       // Cooperative pool retirement: main is stopping the pooled backend under
       // `poolKey` for a foreground open. The renderer parks that scope.
@@ -658,13 +658,13 @@ export interface DesktopMarketplaceThemeResult {
   themes: DesktopMarketplaceThemeFile[]
 }
 
-export interface HermesTerminalSession {
+export interface ShellGPTTerminalSession {
   cwd: string
   id: string
   shell: string
 }
 
-export interface HermesTerminalExit {
+export interface ShellGPTTerminalExit {
   code: number | null
   signal: string | null
 }
@@ -674,7 +674,7 @@ export interface DesktopVersionInfo {
   electronVersion: string
   nodeVersion: string
   platform: string
-  hermesRoot: string
+  shellgptRoot: string
   /** True when the running renderer bundle predates desktop changes in the
    *  installed source tree (runtime updated, app binary not rebuilt/swapped). */
   bundleOutOfSync?: boolean
@@ -708,7 +708,7 @@ export interface DesktopMachineProfile {
 export type DesktopUninstallMode = 'full' | 'gui' | 'lite'
 
 export interface DesktopUninstallSummary {
-  hermes_home: string
+  shellgpt_home: string
   agent_installed: boolean
   gui_installed: boolean
   source_built_artifacts: string[]
@@ -783,10 +783,10 @@ export interface DesktopUpdateApplyResult {
   message?: string
   blockers?: DesktopUpdateBlocker[]
   /** True when no staged updater exists (CLI install) and the user should run
-   *  `hermes update` themselves. `command` is the exact line to run. */
+   *  `shellgpt update` themselves. `command` is the exact line to run. */
   manual?: boolean
   command?: string
-  hermesRoot?: string
+  shellgptRoot?: string
   /** True when the backend was updated but the GUI couldn't be relaunched in
    *  place (AppImage / dev run): the new version loads on next launch. */
   backendUpdated?: boolean
@@ -844,7 +844,7 @@ export interface DesktopPluginProfileRoute {
   targetProfile: string
 }
 
-export interface HermesConnection {
+export interface ShellGPTConnection {
   baseUrl: string
   customWindowControls?: boolean
   darwinMajor?: number
@@ -858,7 +858,7 @@ export interface HermesConnection {
   remoteHost?: string
   remoteIdentity?: string
   remoteKind?: 'cloud' | 'ssh' | 'url'
-  remoteHermesVersion?: string
+  remoteShellGPTVersion?: string
   nativeOverlayWidth: number
   source?: 'env' | 'local' | 'settings'
   token: string
@@ -885,18 +885,18 @@ export interface HermesConnection {
   windowButtonPosition: { x: number; y: number } | null
 }
 
-export interface HermesTitleBarTheme {
+export interface ShellGPTTitleBarTheme {
   background: string
   foreground: string
 }
 
 /** Turns in flight, so the main process can confirm before a quit kills them. */
-export interface HermesActiveWork {
+export interface ShellGPTActiveWork {
   count: number
   titles: string[]
 }
 
-export interface HermesWindowState {
+export interface ShellGPTWindowState {
   customWindowControls?: boolean
   darwinMajor?: number
   isFullscreen: boolean
@@ -920,7 +920,7 @@ export interface DesktopActiveProfile {
 
 export interface DesktopConnectionConfig {
   envOverride: boolean
-  // The saved connection mode. 'cloud' is a Hermes Cloud connection: it carries
+  // The saved connection mode. 'cloud' is a ShellGPT Cloud connection: it carries
   // a remote-shaped block (remoteUrl = the selected agent's dashboardUrl,
   // remoteAuthMode 'oauth') but is remembered as cloud so settings reopens into
   // the cloud picker. Resolution treats cloud exactly as remote
@@ -943,7 +943,7 @@ export interface DesktopConnectionConfig {
   // encryption is opted out — plain text is the chosen mode there.
   remoteTokenPlainText: boolean
   remoteUrl: string
-  // For a 'cloud' connection: the persisted Hermes Cloud org (slug or id) the
+  // For a 'cloud' connection: the persisted ShellGPT Cloud org (slug or id) the
   // connected instance was discovered under, so Settings → Gateway can reopen
   // into that org. Empty string for remote/local.
   cloudOrg: string
@@ -951,7 +951,7 @@ export interface DesktopConnectionConfig {
   sshUser: string
   sshPort: number | null
   sshKeyPath: string
-  sshRemoteHermesPath: string
+  sshRemoteShellGPTPath: string
   sshRemoteProfile: string
 }
 
@@ -967,7 +967,7 @@ export interface DesktopConnectionConfigInput {
   // user opt-in from the renderer.
   allowPlainTextToken?: boolean
   remoteUrl?: string
-  // For a 'cloud' connection: the selected Hermes Cloud org (slug or id) to
+  // For a 'cloud' connection: the selected ShellGPT Cloud org (slug or id) to
   // persist so Settings can reopen into it. Ignored for remote/local modes.
   cloudOrg?: string
   cloudName?: string
@@ -975,7 +975,7 @@ export interface DesktopConnectionConfigInput {
   sshUser?: string
   sshPort?: number | null
   sshKeyPath?: string
-  sshRemoteHermesPath?: string
+  sshRemoteShellGPTPath?: string
   sshRemoteProfile?: string
 }
 
@@ -986,7 +986,7 @@ export interface DesktopConnectionTestResult {
   reachable?: boolean
   sshError?:
     | 'auth-failed'
-    | 'hermes-not-found'
+    | 'shellgpt-not-found'
     | 'host-key-changed'
     | 'timeout'
     | 'unreachable'
@@ -996,8 +996,8 @@ export interface DesktopConnectionTestResult {
     | null
   error?: string | null
   host?: string
-  remoteHermesPath?: string
-  remoteHermesVersion?: string
+  remoteShellGPTPath?: string
+  remoteShellGPTVersion?: string
   remotePlatform?: string
 }
 
@@ -1019,7 +1019,7 @@ export interface DesktopRegistryConnection {
   user?: string
   port?: number
   keyPath?: string
-  remoteHermesPath?: string
+  remoteShellGPTPath?: string
   remoteProfile?: string
   tokenSet: boolean
   tokenPreview: null | string
@@ -1070,7 +1070,7 @@ export interface DesktopRegistryConnectionInput {
   user?: string
   port?: null | number
   keyPath?: string
-  remoteHermesPath?: string
+  remoteShellGPTPath?: string
   remoteProfile?: string
 }
 
@@ -1182,7 +1182,7 @@ export interface DesktopOauthLogoutResult {
   connected: boolean
 }
 
-// --- Hermes Cloud (cloud-auto-discovery Phase 3) ---
+// --- ShellGPT Cloud (cloud-auto-discovery Phase 3) ---
 
 export interface DesktopCloudStatus {
   // The portal base URL the desktop talks to (default or env-overridden).
@@ -1192,7 +1192,7 @@ export interface DesktopCloudStatus {
   signedIn: boolean
 }
 
-// A discovered Hermes Cloud agent — the trimmed DTO from NAS GET /api/agents.
+// A discovered ShellGPT Cloud agent — the trimmed DTO from NAS GET /api/agents.
 export interface DesktopCloudAgent {
   id: string
   name: string
@@ -1324,7 +1324,7 @@ export type DesktopBootstrapEvent =
       docsUrl: string
     }
 
-export interface HermesApiRequest {
+export interface ShellGPTApiRequest {
   path: string
   method?: string
   body?: unknown
@@ -1354,7 +1354,7 @@ export interface HermesApiRequest {
   priority?: 'foreground'
 }
 
-export interface HermesPreviewTarget {
+export interface ShellGPTPreviewTarget {
   binary?: boolean
   byteSize?: number
   kind: 'file' | 'url'
@@ -1369,7 +1369,7 @@ export interface HermesPreviewTarget {
   url: string
 }
 
-export interface HermesReadFileTextResult {
+export interface ShellGPTReadFileTextResult {
   binary?: boolean
   byteSize?: number
   language?: string
@@ -1379,14 +1379,14 @@ export interface HermesReadFileTextResult {
   truncated?: boolean
 }
 
-export interface HermesPreviewWatch {
+export interface ShellGPTPreviewWatch {
   id: string
   path: string
 }
 
 // A real git worktree as reported by `git worktree list` (source of truth for
 // the "Start work" flow), as opposed to the session-cwd-derived grouping above.
-export interface HermesGitWorktree {
+export interface ShellGPTGitWorktree {
   path: string
   branch: null | string
   isMain: boolean
@@ -1400,7 +1400,7 @@ export interface HermesGitWorktree {
 // that a selection switches the main checkout, and does not make
 // `.worktrees/main`. `isRemote` means that a selection first makes a local
 // branch that tracks the remote one.
-export interface HermesGitBranch {
+export interface ShellGPTGitBranch {
   name: string
   checkedOut: boolean
   isDefault: boolean
@@ -1412,7 +1412,7 @@ export interface HermesGitBranch {
 // refs. `isRemote` distinguishes `origin/main` from a local `main` (the UI
 // may show a remote glyph); `isDefault` flags origin/HEAD so the dialog can
 // preselect it.
-export interface HermesGitBaseBranch {
+export interface ShellGPTGitBaseBranch {
   name: string
   isRemote: boolean
   isDefault: boolean
@@ -1420,7 +1420,7 @@ export interface HermesGitBaseBranch {
 
 // A single changed path from `git status --porcelain=v2`, classified by state
 // so the coding rail / switcher can group + open the right diff.
-export interface HermesRepoStatusFile {
+export interface ShellGPTRepoStatusFile {
   path: string
   staged: boolean
   unstaged: boolean
@@ -1430,7 +1430,7 @@ export interface HermesRepoStatusFile {
 
 // Compact working-tree status for the composer coding rail (parsed from
 // `git status --porcelain=v2 --branch`).
-export interface HermesRepoStatus {
+export interface ShellGPTRepoStatus {
   branch: null | string
   // The repo's trunk ("main" / "master" / …), so the UI can offer "branch off
   // the default" from anywhere. Null when no trunk is detected.
@@ -1449,16 +1449,16 @@ export interface HermesRepoStatus {
   added: number
   removed: number
   // Capped changed-file list (REPO_STATUS_FILE_CAP) for the diff/open actions.
-  files: HermesRepoStatusFile[]
+  files: ShellGPTRepoStatusFile[]
 }
 
 // Diff scope for the review pane, mirroring Codex: uncommitted working-tree
 // changes, all changes vs the branch base, or everything since the current
 // turn began.
-export type HermesReviewScope = 'branch' | 'lastTurn' | 'uncommitted'
+export type ShellGPTReviewScope = 'branch' | 'lastTurn' | 'uncommitted'
 
 // One changed file in the review pane (status letter, +/- lines, staged flag).
-export interface HermesReviewFile {
+export interface ShellGPTReviewFile {
   path: string
   added: number
   removed: number
@@ -1467,15 +1467,15 @@ export interface HermesReviewFile {
   staged: boolean
 }
 
-export interface HermesReviewList {
-  files: HermesReviewFile[]
+export interface ShellGPTReviewList {
+  files: ShellGPTReviewFile[]
   // The resolved base ref the scope diffed against (branch merge-base / turn
   // baseline), or null for the uncommitted scope.
   base: null | string
 }
 
 // The branch's PR (if any) as reported by `gh pr view`.
-export interface HermesReviewPr {
+export interface ShellGPTReviewPr {
   url: string
   state: string
   number: number
@@ -1483,7 +1483,7 @@ export interface HermesReviewPr {
 
 // One repo's PRs as reported by `gh pr list`, each tied to the branch it was
 // opened from — how a session row finds its own PR.
-export interface HermesBranchPullRequest {
+export interface ShellGPTBranchPullRequest {
   branch: string
   draft: boolean
   number: number
@@ -1493,36 +1493,36 @@ export interface HermesBranchPullRequest {
   url: string
 }
 
-export interface HermesRepoPullRequests {
+export interface ShellGPTRepoPullRequests {
   ghReady: boolean
-  prs: HermesBranchPullRequest[]
+  prs: ShellGPTBranchPullRequest[]
 }
 
 // gh availability/auth + the current branch's PR — drives the review pane's PR
 // button (disabled when gh isn't ready, "Open PR" vs "Create PR" otherwise).
-export interface HermesReviewShipInfo {
+export interface ShellGPTReviewShipInfo {
   ghReady: boolean
-  pr: HermesReviewPr | null
+  pr: ShellGPTReviewPr | null
 }
 
-export interface HermesReadDirEntry {
+export interface ShellGPTReadDirEntry {
   name: string
   path: string
   isDirectory: boolean
 }
 
-export interface HermesReadDirResult {
-  entries: HermesReadDirEntry[]
+export interface ShellGPTReadDirResult {
+  entries: ShellGPTReadDirEntry[]
   error?: string
 }
 
-export interface HermesPreviewFileChanged {
+export interface ShellGPTPreviewFileChanged {
   id: string
   path: string
   url: string
 }
 
-export interface HermesSelectPathsOptions {
+export interface ShellGPTSelectPathsOptions {
   title?: string
   defaultPath?: string
   directories?: boolean

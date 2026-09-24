@@ -11,20 +11,20 @@ interface LayoutEntry {
 }
 
 export const LAYOUT_KEYS = {
-  floating: 'hermes.desktop.floatingPanes.v1',
-  tree: 'hermes.desktop.layoutTree.v2',
-  preset: 'hermes.desktop.layoutPreset.active',
-  panes: 'hermes.desktop.paneStates.v1',
-  dismissed: 'hermes.desktop.dismissedPanes.v1',
-  shares: 'hermes.desktop.paneShare.v1',
-  hiddenTabs: 'hermes.desktop.hiddenStripTabs.v1',
-  placed: 'hermes.desktop.userPlacedPanes.v1',
-  flipped: 'hermes.desktop.panesFlipped',
-  collapsed: 'hermes.desktop.collapsedTreeSides.v1'
+  floating: 'shellgpt.desktop.floatingPanes.v1',
+  tree: 'shellgpt.desktop.layoutTree.v2',
+  preset: 'shellgpt.desktop.layoutPreset.active',
+  panes: 'shellgpt.desktop.paneStates.v1',
+  dismissed: 'shellgpt.desktop.dismissedPanes.v1',
+  shares: 'shellgpt.desktop.paneShare.v1',
+  hiddenTabs: 'shellgpt.desktop.hiddenStripTabs.v1',
+  placed: 'shellgpt.desktop.userPlacedPanes.v1',
+  flipped: 'shellgpt.desktop.panesFlipped',
+  collapsed: 'shellgpt.desktop.collapsedTreeSides.v1'
 } as const
 
 function migrateLayoutScopes(initialMode: InterfaceMode) {
-  const marker = 'hermes.desktop.layoutModeScopes.v1'
+  const marker = 'shellgpt.desktop.layoutModeScopes.v1'
   const legacy = new Map<string, string>()
 
   if (readKey(marker) !== null) {

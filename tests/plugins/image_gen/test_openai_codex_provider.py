@@ -38,8 +38,8 @@ def _b64_png() -> str:
 
 
 @pytest.fixture(autouse=True)
-def _tmp_hermes_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+def _tmp_shellgpt_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHELLGPT_HOME", str(tmp_path))
     monkeypatch.delenv("OPENAI_IMAGE_MODEL", raising=False)
     yield tmp_path
 
@@ -92,8 +92,8 @@ class TestMetadata:
         schema = provider.get_setup_schema()
         assert schema["env_vars"] == []
         assert schema["post_setup"] == "openai_codex"
-        assert "hermes auth add openai-codex" in schema["post_setup_hint"]
-        assert "hermes auth codex`" not in schema["post_setup_hint"]
+        assert "shellgpt auth add openai-codex" in schema["post_setup_hint"]
+        assert "shellgpt auth codex`" not in schema["post_setup_hint"]
 
 
 # ── Availability ────────────────────────────────────────────────────────────

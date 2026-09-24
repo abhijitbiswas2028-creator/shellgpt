@@ -12,8 +12,8 @@ import httpx
 import pytest
 import yaml
 
-from hermes_cli import __version__
-from hermes_constants import reset_hermes_home_override, set_hermes_home_override
+from shellgpt_cli import __version__
+from shellgpt_constants import reset_shellgpt_home_override, set_shellgpt_home_override
 
 
 CODEX_URL = "https://chatgpt.com/backend-api/codex"
@@ -33,12 +33,12 @@ def profile(tmp_path, monkeypatch):
     home = tmp_path / "profile"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
-    token = set_hermes_home_override(home)
+    monkeypatch.setenv("SHELLGPT_HOME", str(home))
+    token = set_shellgpt_home_override(home)
     try:
         yield home
     finally:
-        reset_hermes_home_override(token)
+        reset_shellgpt_home_override(token)
 
 
 def _set_legacy_attribution(profile, enabled):
@@ -54,7 +54,7 @@ def _set_legacy_attribution(profile, enabled):
 
 @pytest.fixture
 def wire(profile, monkeypatch):
-    """Replace only HTTP transports; use Hermes routing and the real SDK."""
+    """Replace only HTTP transports; use ShellGPT routing and the real SDK."""
     from agent import auxiliary_client
     from run_agent import AIAgent
 
@@ -108,8 +108,8 @@ def wire(profile, monkeypatch):
 
 
 def _assert_identity(request, account_id="acct-attribution-test"):
-    assert request.headers["originator"] == "hermes-agent"
-    assert request.headers["user-agent"] == f"HermesAgent/{__version__}"
+    assert request.headers["originator"] == "shellgpt-agent"
+    assert request.headers["user-agent"] == f"ShellGPTAgent/{__version__}"
     assert request.headers["chatgpt-account-id"] == account_id
     assert "extra_headers" not in json.loads(request.content)
 
@@ -139,10 +139,10 @@ def test_new_identity_is_limited_to_the_official_endpoint(base_url, attributed):
 
     headers = _codex_cloudflare_headers(_jwt(), base_url=base_url)
 
-    assert headers["originator"] == ("hermes-agent" if attributed else "codex_cli_rs")
+    assert headers["originator"] == ("shellgpt-agent" if attributed else "codex_cli_rs")
     assert headers["User-Agent"] == (
-        f"HermesAgent/{__version__}"
-        if attributed else "codex_cli_rs/0.0.0 (Hermes Agent)"
+        f"ShellGPTAgent/{__version__}"
+        if attributed else "codex_cli_rs/0.0.0 (ShellGPT Agent)"
     )
 
 
@@ -180,7 +180,7 @@ def test_primary_client_and_credential_rebuild_send_expected_headers(
         agent.client.responses.create(model=MODEL, input="test")
         assert "originator" not in wire[-1].headers
         assert "chatgpt-account-id" not in wire[-1].headers
-        assert not wire[-1].headers["user-agent"].startswith("HermesAgent/")
+        assert not wire[-1].headers["user-agent"].startswith("ShellGPTAgent/")
     finally:
         for client in clients:
             client.close()
@@ -247,7 +247,7 @@ def test_credential_pool_custom_endpoint_keeps_existing_identity(
         )
         assert wire[-1].url.host == "proxy.example"
         assert wire[-1].headers["originator"] == "codex_cli_rs"
-        assert wire[-1].headers["user-agent"] == "codex_cli_rs/0.0.0 (Hermes Agent)"
+        assert wire[-1].headers["user-agent"] == "codex_cli_rs/0.0.0 (ShellGPT Agent)"
         assert wire[-1].headers["chatgpt-account-id"] == "acct-attribution-test"
     finally:
         client.close()
@@ -337,7 +337,7 @@ def test_required_identity_wins_over_configured_header_defaults(
         proxy.responses.create(model=MODEL, input="test")
         assert wire[-1].headers["originator"] == "codex_cli_rs"
         assert "custom-client" in wire[-1].headers.get_list("user-agent")
-        assert "HermesAgent/" not in wire[-1].headers["user-agent"]
+        assert "ShellGPTAgent/" not in wire[-1].headers["user-agent"]
         assert wire[-1].headers["x-test-header"] == "preserved"
         assert "chatgpt-account-id" not in wire[-1].headers
     finally:

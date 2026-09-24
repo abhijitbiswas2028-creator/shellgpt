@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from hermes_platform import declaration
+from shellgpt_platform import declaration
 from tools.mcp_liveness import parse_liveness
 
 
@@ -44,7 +44,7 @@ def test_parse_liveness_contract():
 
 
 def test_invalid_registered_liveness_degrades_to_static(monkeypatch):
-    import hermes_cli.agent_plugins as agent_plugins
+    import shellgpt_cli.agent_plugins as agent_plugins
     from tools.mcp_liveness import liveness_for
 
     monkeypatch.setattr(agent_plugins, "liveness_for", lambda name: {"kind": "server_json"}, raising=False)
@@ -54,7 +54,7 @@ def test_invalid_registered_liveness_degrades_to_static(monkeypatch):
 
 
 def test_live_endpoint_reloads_file_and_registers_token_before_use(tmp_path, monkeypatch, caplog):
-    import hermes_cli.agent_plugins as agent_plugins
+    import shellgpt_cli.agent_plugins as agent_plugins
     from agent import redact
     from tools.mcp_tool_transport import _live_endpoint
 
@@ -84,7 +84,7 @@ def test_live_endpoint_reloads_file_and_registers_token_before_use(tmp_path, mon
 
 
 def test_runtime_file_without_token_connects_without_authorization(tmp_path, monkeypatch):
-    import hermes_cli.agent_plugins as agent_plugins
+    import shellgpt_cli.agent_plugins as agent_plugins
     from agent import redact
     from tools.mcp_tool_transport import _live_endpoint
 
@@ -110,7 +110,7 @@ def test_runtime_file_without_token_connects_without_authorization(tmp_path, mon
 
 
 def test_missing_runtime_file_never_falls_back(tmp_path, monkeypatch):
-    import hermes_cli.agent_plugins as agent_plugins
+    import shellgpt_cli.agent_plugins as agent_plugins
     from tools.mcp_tool_transport import LiveEndpointUnavailable, _live_endpoint
 
     decl = _decl(tmp_path)
@@ -128,7 +128,7 @@ def test_missing_runtime_file_never_falls_back(tmp_path, monkeypatch):
 
 
 def test_hydrated_error_shape_for_registered_declaration(tmp_path, monkeypatch):
-    import hermes_cli.agent_plugins as agent_plugins
+    import shellgpt_cli.agent_plugins as agent_plugins
     from tools import mcp_tool, mcp_tool_discovery, mcp_tool_handlers
 
     decl = _decl(tmp_path)
@@ -150,8 +150,8 @@ def test_hydrated_error_shape_for_registered_declaration(tmp_path, monkeypatch):
 
 
 def test_connected_interactive_session_server_is_offerable_from_a_service_session(tmp_path, monkeypatch):
-    import hermes_cli.agent_plugins as agent_plugins
-    from hermes_platform.host import facts
+    import shellgpt_cli.agent_plugins as agent_plugins
+    from shellgpt_platform.host import facts
     from tools import mcp_tool_handlers
 
     declaration.register("example-server", _decl(tmp_path))
