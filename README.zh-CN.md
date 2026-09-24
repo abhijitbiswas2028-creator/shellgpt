@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="ShellGPT Agent" width="100%">
+  <img src="assets/banner.png" alt="ShellGPT" width="100%">
 </p>
 
-# ShellGPT Agent ☤
+# ShellGPT ☤
 
 <p align="center">
   <a href="https://shellgpt-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-shellgpt--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
@@ -197,7 +197,7 @@ python -m pytest tests/ -q
 - 📚 [技能中心](https://agentskills.io)
 - 🐛 [问题反馈](https://github.com/NousResearch/shellgpt-agent/issues)
 - 💡 [讨论区](https://github.com/NousResearch/shellgpt-agent/discussions)
-- 🔌 [ShellGPTClaw](https://github.com/AaronWong1999/shellgptclaw) — 社区微信桥接：在同一微信账号上运行 ShellGPT Agent 和 OpenClaw。
+- 🔌 [ShellGPTClaw](https://github.com/AaronWong1999/shellgptclaw) — 社区微信桥接：在同一微信账号上运行 ShellGPT 和 OpenClaw。
 
 ---
 

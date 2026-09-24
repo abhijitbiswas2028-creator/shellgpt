@@ -1,10 +1,10 @@
 <div dir="rtl">
 
 <p align="center">
-  <img src="assets/banner.png" alt="ShellGPT Agent" width="100%">
+  <img src="assets/banner.png" alt="ShellGPT" width="100%">
 </p>
 
-# ہرمیس ایجنٹ ☤ (ShellGPT Agent)
+# ہرمیس ایجنٹ ☤ (ShellGPT)
 
 <p align="center">
   <a href="https://shellgpt-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-shellgpt--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>

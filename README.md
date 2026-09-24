@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/banner.png" alt="ShellGPT Agent" width="100%">
+  <img src="assets/banner.png" alt="ShellGPT" width="100%">
 </p>
 
-# ShellGPT Agent ☤
+# ShellGPT ☤
 <p align="center">
-  <a href="https://shellgpt-agent.nousresearch.com/">ShellGPT Agent</a> | <a href="https://shellgpt-agent.nousresearch.com/">ShellGPT Desktop</a>
+  <a href="https://shellgpt-agent.nousresearch.com/">ShellGPT</a> | <a href="https://shellgpt-agent.nousresearch.com/">ShellGPT Desktop</a>
 </p>
 <p align="center">
   <a href="https://shellgpt-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-shellgpt--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
@@ -253,7 +253,7 @@ scripts/run_tests.sh
 - 📚 [Skills Hub](https://agentskills.io)
 - 🐛 [Issues](https://github.com/NousResearch/shellgpt-agent/issues)
 - 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for ShellGPT and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
-- 🔌 [ShellGPTClaw](https://github.com/AaronWong1999/shellgptclaw) — Community WeChat bridge: Run ShellGPT Agent and OpenClaw on the same WeChat account.
+- 🔌 [ShellGPTClaw](https://github.com/AaronWong1999/shellgptclaw) — Community WeChat bridge: Run ShellGPT and OpenClaw on the same WeChat account.
 
 ---
 
